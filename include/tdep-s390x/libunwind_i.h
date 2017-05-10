@@ -25,8 +25,8 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
-#ifndef X86_64_LIBUNWIND_I_H
-#define X86_64_LIBUNWIND_I_H
+#ifndef S390X_LIBUNWIND_I_H
+#define S390X_LIBUNWIND_I_H
 
 /* Target-dependent definitions that are internal to libunwind but need
    to be shared with target-independent code.  */
@@ -85,10 +85,10 @@ struct cursor
        stored: */
     enum
       {
-        X86_64_SCF_NONE,                /* no signal frame encountered */
-        X86_64_SCF_LINUX_RT_SIGFRAME,   /* Linux ucontext_t */
-        X86_64_SCF_FREEBSD_SIGFRAME,    /* FreeBSD signal frame */
-        X86_64_SCF_FREEBSD_SYSCALL,     /* FreeBSD syscall */
+        S390X_SCF_NONE,                /* no signal frame encountered */
+        S390X_SCF_LINUX_RT_SIGFRAME,   /* Linux ucontext_t */
+        S390X_SCF_FREEBSD_SIGFRAME,    /* FreeBSD signal frame */
+        S390X_SCF_FREEBSD_SYSCALL,     /* FreeBSD syscall */
       }
     sigcontext_format;
     unw_word_t sigcontext_addr;
@@ -122,9 +122,9 @@ dwarf_get_uc(const struct dwarf_cursor *cursor)
 # define DWARF_NULL_LOC         DWARF_LOC (0, 0)
 # define DWARF_IS_NULL_LOC(l)   (DWARF_GET_LOC (l) == 0)
 # define DWARF_REG_LOC(c,r)     (DWARF_LOC((unw_word_t)                      \
-                                 x86_64_r_uc_addr(dwarf_get_uc(c), (r)), 0))
+                                 tdep_uc_addr(dwarf_get_uc(c), (r)), 0))
 # define DWARF_FPREG_LOC(c,r)   (DWARF_LOC((unw_word_t)                      \
-                                 x86_64_r_uc_addr(dwarf_get_uc(c), (r)), 0))
+                                 tdep_uc_addr(dwarf_get_uc(c), (r)), 0))
 
 #else /* !UNW_LOCAL_ONLY */
 
@@ -188,7 +188,7 @@ dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
                                      1, c->as_arg);
 }
 
-#define tdep_getcontext_trace           UNW_ARCH_OBJ(getcontext_trace)
+#define tdep_getcontext_trace           unw_getcontext
 #define tdep_init_done                  UNW_OBJ(init_done)
 #define tdep_init_mem_validate          UNW_OBJ(init_mem_validate)
 #define tdep_init                       UNW_OBJ(init)
@@ -200,18 +200,20 @@ dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
 #define tdep_get_exe_image_path         UNW_ARCH_OBJ(get_exe_image_path)
 #define tdep_access_reg                 UNW_OBJ(access_reg)
 #define tdep_access_fpreg               UNW_OBJ(access_fpreg)
-#if __linux__
-# define tdep_fetch_frame               UNW_OBJ(fetch_frame)
-# define tdep_cache_frame               UNW_OBJ(cache_frame)
-# define tdep_reuse_frame               UNW_OBJ(reuse_frame)
-#else
+// TODO(mundaym): implement *_frame functions?
+
+//#if __linux__
+//# define tdep_fetch_frame               UNW_OBJ(fetch_frame)
+//# define tdep_cache_frame               UNW_OBJ(cache_frame)
+//# define tdep_reuse_frame               UNW_OBJ(reuse_frame)
+//#else
 # define tdep_fetch_frame(c,ip,n)       do {} while(0)
 # define tdep_cache_frame(c,rs)         do {} while(0)
 # define tdep_reuse_frame(c,rs)         do {} while(0)
-#endif
-#define tdep_stash_frame                UNW_OBJ(stash_frame)
+//#endif
+#define tdep_stash_frame(cs,rs)         do {} while(0) // TODO(mundaym): implement?
 #define tdep_trace                      UNW_OBJ(tdep_trace)
-#define x86_64_r_uc_addr                UNW_OBJ(r_uc_addr)
+#define tdep_uc_addr                    UNW_OBJ(uc_addr)
 
 #ifdef UNW_LOCAL_ONLY
 # define tdep_find_proc_info(c,ip,n)                            \
@@ -239,7 +241,7 @@ extern void tdep_init_mem_validate (void);
 extern int tdep_search_unwind_table (unw_addr_space_t as, unw_word_t ip,
                                      unw_dyn_info_t *di, unw_proc_info_t *pi,
                                      int need_unwind_info, void *arg);
-extern void *x86_64_r_uc_addr (ucontext_t *uc, int reg);
+extern void *tdep_uc_addr (unw_tdep_context_t *uc, int reg);
 extern int tdep_get_elf_image (struct elf_image *ei, pid_t pid, unw_word_t ip,
                                unsigned long *segbase, unsigned long *mapoff,
                                char *path, size_t pathlen);
@@ -248,7 +250,7 @@ extern int tdep_access_reg (struct cursor *c, unw_regnum_t reg,
                             unw_word_t *valp, int write);
 extern int tdep_access_fpreg (struct cursor *c, unw_regnum_t reg,
                               unw_fpreg_t *valp, int write);
-#if __linux__
+#if 0 // TODO(mundaym): implement for s390x? #if __linux__
 extern void tdep_fetch_frame (struct dwarf_cursor *c, unw_word_t ip,
                               int need_unwind_info);
 extern void tdep_cache_frame (struct dwarf_cursor *c,
@@ -259,7 +261,6 @@ extern void tdep_stash_frame (struct dwarf_cursor *c,
                               struct dwarf_reg_state *rs);
 #endif
 
-extern int tdep_getcontext_trace (unw_tdep_context_t *);
 extern int tdep_trace (unw_cursor_t *cursor, void **addresses, int *n);
 
-#endif /* X86_64_LIBUNWIND_I_H */
+#endif /* S390X_LIBUNWIND_I_H */

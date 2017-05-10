@@ -464,8 +464,7 @@ libunwind_sh_la_SOURCES_sh = $(libunwind_la_SOURCES_sh_common)		\
 	sh/Gis_signal_frame.c sh/Gregs.c sh/Gresume.c sh/Gstep.c
 
 # The list of files that go both into libunwind and libunwind-s390x:
-noinst_HEADERS += s390x/offsets.h					\
-	s390x/init.h s390x/unwind_i.h s390x/ucontext_i.h
+noinst_HEADERS += s390x/init.h s390x/unwind_i.h s390x/ucontext_i.h
 libunwind_la_SOURCES_s390x_common = $(libunwind_la_SOURCES_common)	\
 	s390x/is_fpreg.c s390x/regname.c
 
@@ -475,7 +474,7 @@ libunwind_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)	    \
 	s390x/Lcreate_addr_space.c s390x/Lget_save_loc.c s390x/Lglobal.c    \
 	s390x/Linit.c s390x/Linit_local.c s390x/Linit_remote.c	            \
 	s390x/Lget_proc_info.c s390x/Lregs.c s390x/Lresume.c		    \
-	s390x/Lstash_frame.c s390x/Lstep.c s390x/Ltrace.c s390x/getcontext.S
+	s390x/Lis_signal_frame.c s390x/Lstep.c s390x/Ltrace.c
 
 # The list of files that go into libunwind-s390x:
 libunwind_s390x_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)     \
@@ -483,7 +482,7 @@ libunwind_s390x_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)     \
 	s390x/Gcreate_addr_space.c s390x/Gget_save_loc.c s390x/Gglobal.c    \
 	s390x/Ginit.c s390x/Ginit_local.c s390x/Ginit_remote.c	            \
 	s390x/Gget_proc_info.c s390x/Gregs.c s390x/Gresume.c		    \
-	s390x/Gstash_frame.c s390x/Gstep.c s390x/Gtrace.c
+	s390x/Gis_signal_frame.c s390x/Gstep.c s390x/Gtrace.c
 
 if REMOTE_ONLY
 install-exec-hook:
@@ -690,11 +689,11 @@ if ARCH_S390X
  libunwind_s390x_la_SOURCES = $(libunwind_s390x_la_SOURCES_s390x)
  libunwind_s390x_la_LDFLAGS = $(COMMON_SO_LDFLAGS) -version-info $(SOVERSION)
  libunwind_s390x_la_LIBADD = libunwind-dwarf-generic.la
- libunwind_s390x_la_LIBADD += libunwind-elf32.la
+ libunwind_s390x_la_LIBADD += libunwind-elf64.la
 if !REMOTE_ONLY
  libunwind_s390x_la_LIBADD += libunwind.la -lc
 endif
- libunwind_setjmp_la_SOURCES += sh/siglongjmp.S
+ libunwind_setjmp_la_SOURCES += s390x/longjmp.S s390x/siglongjmp.S
 
 endif # ARCH_S390X
 endif # ARCH_SH
