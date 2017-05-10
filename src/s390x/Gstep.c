@@ -60,8 +60,6 @@ unw_step (unw_cursor_t *cursor)
   struct cursor *c = (struct cursor *) cursor;
   int ret = 0, i;
   (void)i;
-  abort();
-#if 0 // TODO(mundaym): port to s390x.
 
 #if CONSERVATIVE_CHECKS
   int val = c->validate;
@@ -72,7 +70,7 @@ unw_step (unw_cursor_t *cursor)
          c, c->dwarf.ip, c->dwarf.cfa);
 
   /* Try DWARF-based unwinding... */
-  c->sigcontext_format = X86_64_SCF_NONE;
+  c->sigcontext_format = S390X_SCF_NONE;
   ret = dwarf_step (&c->dwarf);
 
 #if CONSERVATIVE_CHECKS
@@ -84,6 +82,8 @@ unw_step (unw_cursor_t *cursor)
       Debug (2, "returning %d\n", ret);
       return ret;
     }
+  abort();
+#if 0 // TODO(mundaym): port to s390x.
 
   if (likely (ret >= 0))
     {
