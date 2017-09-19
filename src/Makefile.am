@@ -479,6 +479,7 @@ libunwind_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)	    \
 # The list of files that go into libunwind-s390x:
 libunwind_s390x_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)     \
 	$(libunwind_la_SOURCES_generic)					    \
+	s390x/Gapply_reg_state.c s390x/Greg_states_iterate.c	            \
 	s390x/Gcreate_addr_space.c s390x/Gget_save_loc.c s390x/Gglobal.c    \
 	s390x/Ginit.c s390x/Ginit_local.c s390x/Ginit_remote.c	            \
 	s390x/Gget_proc_info.c s390x/Gregs.c s390x/Gresume.c		    \
