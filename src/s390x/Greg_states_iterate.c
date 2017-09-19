@@ -1,5 +1,5 @@
 /* libunwind - a platform-independent unwind library
-   Copyright (C) 2002 Hewlett-Packard Co
+   Copyright (c) 2002-2003 Hewlett-Packard Development Company, L.P.
         Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
    Modified for x86_64 by Max Asbock <masbock@us.ibm.com>
@@ -27,37 +27,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 #include "unwind_i.h"
 
-static inline int
-common_init (struct cursor *c, unsigned use_prev_instr)
+PROTECTED int
+unw_reg_states_iterate (unw_cursor_t *cursor,
+			unw_reg_states_callback cb, void *token)
 {
-  int ret;
-  int i;
+  struct cursor *c = (struct cursor *) cursor;
 
-  for (i = UNW_S390X_R0; i <= UNW_S390X_R15; i++) {
-    c->dwarf.loc[i] = DWARF_REG_LOC(&c->dwarf, i);
-  }
-
-  // TODO(mundaym): this should be the instruction pointer (PSW?)
-  ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R0], &c->dwarf.ip);
-  if (ret < 0)
-    return ret;
-
-  ret = dwarf_get (&c->dwarf, DWARF_REG_LOC (&c->dwarf, UNW_S390X_R15),
-                   &c->dwarf.cfa);
-  if (ret < 0)
-    return ret;
-
-  c->sigcontext_format = S390X_SCF_NONE;
-  c->sigcontext_addr = 0;
-
-  c->dwarf.args_size = 0;
-  c->dwarf.stash_frames = 0;
-  c->dwarf.use_prev_instr = use_prev_instr;
-  c->dwarf.pi_valid = 0;
-  c->dwarf.pi_is_dynamic = 0;
-  c->dwarf.hint = 0;
-  c->dwarf.prev_rs = 0;
-  c->dwarf.eh_valid_mask = 0;
-
-  return 0;
+  return dwarf_reg_states_iterate (&c->dwarf, cb, token);
 }

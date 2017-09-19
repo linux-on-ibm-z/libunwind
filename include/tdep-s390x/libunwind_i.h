@@ -208,7 +208,7 @@ dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
 //# define tdep_reuse_frame               UNW_OBJ(reuse_frame)
 //#else
 # define tdep_fetch_frame(c,ip,n)       do {} while(0)
-# define tdep_cache_frame(c,rs)         do {} while(0)
+# define tdep_cache_frame(c)            0
 # define tdep_reuse_frame(c,rs)         do {} while(0)
 //#endif
 #define tdep_stash_frame(cs,rs)         do {} while(0) // TODO(mundaym): implement?
