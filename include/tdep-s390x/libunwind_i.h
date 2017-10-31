@@ -232,7 +232,7 @@ dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
 #define tdep_get_as(c)                  ((c)->dwarf.as)
 #define tdep_get_as_arg(c)              ((c)->dwarf.as_arg)
 #define tdep_get_ip(c)                  ((c)->dwarf.ip)
-#define tdep_big_endian(as)             0
+#define tdep_big_endian(as)             1
 
 extern int tdep_init_done;
 
