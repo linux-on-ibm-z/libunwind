@@ -33,12 +33,11 @@ common_init (struct cursor *c, unsigned use_prev_instr)
   int ret;
   int i;
 
-  for (i = UNW_S390X_R0; i <= UNW_S390X_R15; i++) {
+  for (i = UNW_S390X_R0; i <= UNW_S390X_IP; i++) {
     c->dwarf.loc[i] = DWARF_REG_LOC(&c->dwarf, i);
   }
 
-  // TODO(mundaym): this should be the instruction pointer (PSW?)
-  ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R0], &c->dwarf.ip);
+  ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
   if (ret < 0)
     return ret;
 

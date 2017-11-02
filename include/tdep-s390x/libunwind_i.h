@@ -51,12 +51,13 @@ unw_tdep_frame_type_t;
 typedef struct
   {
     uint64_t virtual_address;
-    int64_t frame_type     : 3;  /* unw_tdep_frame_type_t classification */
+    int64_t frame_type     : 2;  /* unw_tdep_frame_type_t classification */
     int64_t last_frame     : 1;  /* non-zero if last frame in chain */
-    int64_t cfa_reg_rsp    : 1;  /* cfa dwarf base register is rsp vs. rbp */
-    int64_t cfa_reg_offset : 29; /* cfa is at this offset from base register value */
-    int64_t rbp_cfa_offset : 15; /* rbp saved at this offset from cfa (-1 = not saved) */
-    int64_t rsp_cfa_offset : 15; /* rsp saved at this offset from cfa (-1 = not saved) */
+    int64_t cfa_reg_sp     : 1;  /* cfa dwarf base register is sp vs. fp */
+    int64_t cfa_reg_offset : 30; /* cfa is at this offset from base register value */
+    int64_t fp_cfa_offset  : 30; /* fp saved at this offset from cfa (-1 = not saved) */
+    int64_t lr_cfa_offset  : 30; /* lr saved at this offset from cfa (-1 = not saved) */
+    int64_t sp_cfa_offset  : 30; /* sp saved at this offset from cfa (-1 = not saved) */
   }
 unw_tdep_frame_t;
 

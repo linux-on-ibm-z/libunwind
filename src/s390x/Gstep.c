@@ -82,20 +82,49 @@ unw_step (unw_cursor_t *cursor)
       Debug (2, "returning %d\n", ret);
       return ret;
     }
-  abort();
-#if 0 // TODO(mundaym): port to s390x.
 
   if (likely (ret >= 0))
     {
-      /* x86_64 ABI specifies that end of call-chain is marked with a
-         NULL RBP or undefined return address  */
-        if (DWARF_IS_NULL_LOC (c->dwarf.loc[RBP])
-            || DWARF_IS_NULL_LOC(c->dwarf.loc[c->dwarf.ret_addr_column]))
-          {
-            c->dwarf.ip = 0;
-            ret = 0;
-          }
+      Debug (13, "dwarf_step() ended? (ret=%d)\n", ret);
+      return 0;
+      /* IBM Z ABI specifies that end of call-chain is marked with an
+         NULL return address  */
+//        if (DWARF_IS_NULL_LOC(c->dwarf.loc[c->dwarf.ret_addr_column]))
+//          {
+//            c->dwarf.ip = 0;
+//            ret = 0;
+//          }
     }
+  else
+    {
+      Debug (13, "dwarf_step() failed (ret=%d)\n", ret);
+      c->frame_info.frame_type = UNW_X86_64_FRAME_GUESSED;
+      /* Use link register (R14). */
+      c->frame_info.cfa_reg_offset = 0;
+      c->frame_info.cfa_reg_sp = 0;
+      c->frame_info.fp_cfa_offset = -1;
+      c->frame_info.lr_cfa_offset = -1;
+      c->frame_info.sp_cfa_offset = -1;
+      c->dwarf.loc[UNW_S390X_IP] = c->dwarf.loc[UNW_S390X_R14];
+      c->dwarf.loc[UNW_S390X_R14] = DWARF_NULL_LOC;
+      if (!DWARF_IS_NULL_LOC (c->dwarf.loc[UNW_S390X_IP]))
+        {
+          ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
+          if (ret < 0)
+            {
+              Debug (2, "failed to get pc from link register: %d\n", ret);
+              return ret;
+            }
+          Debug (2, "link register (r14) = 0x%016lx\n", c->dwarf.ip);
+          ret = 1;
+        }
+      else
+        c->dwarf.ip = 0;
+    }
+
+    return (c->dwarf.ip == 0) ? 0 : 1;
+
+#if 0 // TODO(mundaym): port to s390x.
   else
     {
       /* DWARF failed.  There isn't much of a usable frame-chain on x86-64,
@@ -231,6 +260,4 @@ unw_step (unw_cursor_t *cursor)
         return -UNW_EBADFRAME;
     }
 #endif
-  Debug (2, "returning %d\n", ret);
-  return ret;
 }

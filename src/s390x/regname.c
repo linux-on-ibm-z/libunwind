@@ -44,6 +44,7 @@ static const char *regname[] =
     [UNW_S390X_R14]="R14",
     [UNW_S390X_R15]="R15",
 
+    [UNW_S390X_IP]="IP"
    };
 
 PROTECTED const char *

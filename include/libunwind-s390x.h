@@ -71,17 +71,18 @@ typedef enum
     UNW_S390X_R13,
     UNW_S390X_R14,
     UNW_S390X_R15,
-    UNW_TDEP_LAST_REG = UNW_S390X_R15,
+    UNW_S390X_IP,
+    UNW_TDEP_LAST_REG = UNW_S390X_IP,
 
     /* TODO(mundaym): vector/float registers */
 
     /* frame info (read-only) */
     UNW_S390X_CFA,
 
+    UNW_TDEP_IP = UNW_S390X_IP,
     UNW_TDEP_SP = UNW_S390X_R15,
 
     /* TODO(mundaym): placeholders */
-    UNW_TDEP_IP = UNW_S390X_R0,
     UNW_TDEP_EH = UNW_S390X_R0,
   }
 s390x_regnum_t;
