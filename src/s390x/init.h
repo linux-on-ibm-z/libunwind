@@ -41,6 +41,7 @@ common_init (struct cursor *c, unsigned use_prev_instr)
   if (ret < 0)
     return ret;
 
+  /* TODO(mundaym): SP != CFA so this is wrong. */
   ret = dwarf_get (&c->dwarf, DWARF_REG_LOC (&c->dwarf, UNW_S390X_R15),
                    &c->dwarf.cfa);
   if (ret < 0)

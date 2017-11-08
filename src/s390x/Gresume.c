@@ -31,19 +31,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 #ifndef UNW_REMOTE_ONLY
 
-static NORETURN inline long
-my_rt_sigreturn (void *new_sp)
-{
-  // TODO(mundaym): copied from ppc64, not sure we want this...
-  /* XXX: empty stub.  */
-  abort ();
-}
-
 HIDDEN inline int
 s390x_local_resume (unw_addr_space_t as, unw_cursor_t *cursor, void *arg)
 {
   struct cursor *c = (struct cursor *) cursor;
-  ucontext_t *uc = c->uc;
+  ucontext_t uc = *c->uc;
 
   // TODO(mundaym): true on s390x?
   /* Ensure c->pi is up-to-date.  On x86-64, it's relatively common to
@@ -52,16 +44,17 @@ s390x_local_resume (unw_addr_space_t as, unw_cursor_t *cursor, void *arg)
      at least.  */
   dwarf_make_proc_info (&c->dwarf);
 
-  if (unlikely (c->sigcontext_addr != S390X_SCF_NONE))
+  switch (c->sigcontext_format)
     {
-      my_rt_sigreturn(cursor);
-      abort();
-    }
-  else
-    {
+    case S390X_SCF_NONE:
       Debug (8, "resuming at ip=%llx via setcontext()\n",
-             (unsigned long long) c->dwarf.ip);
-      setcontext (uc);
+                (unsigned long long) c->dwarf.ip);
+      uc.uc_mcontext.psw.addr = c->dwarf.ip;
+      setcontext (&uc);
+      abort(); /* unreachable */
+    case S390X_SCF_LINUX_RT_SIGFRAME:
+      // TODO(mundaym): jump to signal trampoline
+      abort(); /* unreachable */
     }
   return -UNW_EINVAL;
 }

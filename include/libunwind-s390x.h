@@ -46,7 +46,8 @@ extern "C" {
    require recompiling all users of this library.  Stack allocation is
    relatively cheap and unwind-state copying is relatively rare, so we
    want to err on making it rather too big than too small.  */
-#define UNW_TDEP_CURSOR_LEN     127
+/* TODO(mundaym): currently a guess, probably could be shrunk. */
+#define UNW_TDEP_CURSOR_LEN     384
 
 typedef uint64_t unw_word_t;
 typedef int64_t unw_sword_t;
@@ -55,6 +56,7 @@ typedef long double unw_tdep_fpreg_t;
 
 typedef enum
   {
+    /* general purpose registers */
     UNW_S390X_R0,
     UNW_S390X_R1,
     UNW_S390X_R2,
@@ -71,10 +73,31 @@ typedef enum
     UNW_S390X_R13,
     UNW_S390X_R14,
     UNW_S390X_R15,
+
+    /* floating point registers */
+    UNW_S390X_F0,
+    UNW_S390X_F1,
+    UNW_S390X_F2,
+    UNW_S390X_F3,
+    UNW_S390X_F4,
+    UNW_S390X_F5,
+    UNW_S390X_F6,
+    UNW_S390X_F7,
+    UNW_S390X_F8,
+    UNW_S390X_F9,
+    UNW_S390X_F10,
+    UNW_S390X_F11,
+    UNW_S390X_F12,
+    UNW_S390X_F13,
+    UNW_S390X_F14,
+    UNW_S390X_F15,
+
+    /* PSW */
     UNW_S390X_IP,
+
     UNW_TDEP_LAST_REG = UNW_S390X_IP,
 
-    /* TODO(mundaym): vector/float registers */
+    /* TODO(mundaym): vector registers */
 
     /* frame info (read-only) */
     UNW_S390X_CFA,

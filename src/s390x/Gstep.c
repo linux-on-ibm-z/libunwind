@@ -55,209 +55,94 @@ is_plt_entry (struct dwarf_cursor *c)
 #endif
 
 PROTECTED int
+unw_handle_signal_frame (unw_cursor_t *cursor)
+{
+  struct cursor *c = (struct cursor *) cursor;
+  int ret, i;
+  unw_word_t sc_addr, sp, sp_addr = c->dwarf.cfa;
+  struct dwarf_loc sp_loc = DWARF_LOC (sp_addr, 0);
+  ucontext_t *sc_ptr;
+
+  if ((ret = dwarf_get (&c->dwarf, sp_loc, &sp)) < 0)
+    return -UNW_EUNSPEC;
+
+  ret = unw_is_signal_frame (cursor);
+  Debug(1, "unw_is_signal_frame()=%d\n", ret);
+
+  /* Save the SP and PC to be able to return execution at this point
+     later in time (unw_resume).  */
+  c->sigcontext_sp = c->dwarf.cfa;
+  c->sigcontext_pc = c->dwarf.ip;
+
+  if (ret)
+    {
+      c->sigcontext_format = S390X_SCF_LINUX_RT_SIGFRAME;
+      sc_addr = sp_addr + sizeof(siginfo_t) + 8;
+    }
+  else
+    return -UNW_EUNSPEC;
+
+  c->sigcontext_addr = sc_addr;
+  c->frame_info.frame_type = UNW_X86_64_FRAME_SIGRETURN;
+  c->frame_info.cfa_reg_offset = sc_addr - sp_addr;
+
+  sc_ptr = (ucontext_t*)sc_addr;
+  /* TODO(mundaym): sc_ptr->sregs might equal NULL? */
+
+  /* Update the dwarf cursor.
+     Set the location of the registers to the corresponding addresses of the
+     uc_mcontext / sigcontext structure contents.  */
+  for (i = UNW_S390X_R0; i <= UNW_S390X_R15; ++i)
+    c->dwarf.loc[i] = DWARF_LOC (&sc_ptr->uc_mcontext.gregs[i - UNW_S390X_R0], 0);
+  for (i = UNW_S390X_F0; i <= UNW_S390X_F15; ++i)
+    c->dwarf.loc[i] = DWARF_LOC (&sc_ptr->uc_mcontext.fpregs.fprs[i - UNW_S390X_F0], 0);
+  /* TODO(mundaym): access regs, vxrs */
+
+  c->dwarf.loc[UNW_S390X_IP] = DWARF_LOC (&sc_ptr->uc_mcontext.psw.addr, 0);
+
+  /* Set SP/CFA and PC/IP.  */
+  dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &c->dwarf.cfa);
+  dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
+
+  c->dwarf.pi_valid = 0;
+  c->dwarf.use_prev_instr = 0;
+
+  return 1;
+}
+
+PROTECTED int
 unw_step (unw_cursor_t *cursor)
 {
   struct cursor *c = (struct cursor *) cursor;
+  unw_word_t prev_cfa = c->dwarf.cfa, prev_ip = c->dwarf.ip;
   int ret = 0, i;
   (void)i;
 
-#if CONSERVATIVE_CHECKS
-  int val = c->validate;
-  c->validate = 1;
-#endif
-
   Debug (1, "(cursor=%p, ip=0x%016lx, cfa=0x%016lx)\n",
          c, c->dwarf.ip, c->dwarf.cfa);
+
+  /* Check if this is a signal frame. */
+  if (unw_is_signal_frame (cursor) > 0)
+    return unw_handle_signal_frame (cursor);
 
   /* Try DWARF-based unwinding... */
   c->sigcontext_format = S390X_SCF_NONE;
   ret = dwarf_step (&c->dwarf);
 
-#if CONSERVATIVE_CHECKS
-  c->validate = val;
-#endif
-
-  if (ret < 0 && ret != -UNW_ENOINFO)
+  /* TODO(mundaym): figure out what code is inserting the odd value */
+  if (ret > 0 && c->dwarf.ip&1 == 1)
     {
-      Debug (2, "returning %d\n", ret);
-      return ret;
-    }
-
-  if (likely (ret >= 0))
-    {
-      Debug (13, "dwarf_step() ended? (ret=%d)\n", ret);
+      c->dwarf.ip = 0; /* odd values indicate end of chain */
       return 0;
-      /* IBM Z ABI specifies that end of call-chain is marked with an
-         NULL return address  */
-//        if (DWARF_IS_NULL_LOC(c->dwarf.loc[c->dwarf.ret_addr_column]))
-//          {
-//            c->dwarf.ip = 0;
-//            ret = 0;
-//          }
     }
-  else
+
+  /* We could try and use the backchain if the DWARF is missing.
+     Since it isn't enabled by default however this is very risky. */
+  if (ret == -UNW_ENOINFO)
     {
-      Debug (13, "dwarf_step() failed (ret=%d)\n", ret);
-      c->frame_info.frame_type = UNW_X86_64_FRAME_GUESSED;
-      /* Use link register (R14). */
-      c->frame_info.cfa_reg_offset = 0;
-      c->frame_info.cfa_reg_sp = 0;
-      c->frame_info.fp_cfa_offset = -1;
-      c->frame_info.lr_cfa_offset = -1;
-      c->frame_info.sp_cfa_offset = -1;
-      c->dwarf.loc[UNW_S390X_IP] = c->dwarf.loc[UNW_S390X_R14];
-      c->dwarf.loc[UNW_S390X_R14] = DWARF_NULL_LOC;
-      if (!DWARF_IS_NULL_LOC (c->dwarf.loc[UNW_S390X_IP]))
-        {
-          ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
-          if (ret < 0)
-            {
-              Debug (2, "failed to get pc from link register: %d\n", ret);
-              return ret;
-            }
-          Debug (2, "link register (r14) = 0x%016lx\n", c->dwarf.ip);
-          ret = 1;
-        }
-      else
-        c->dwarf.ip = 0;
+      c->dwarf.ip = 0;
+      return 0;
     }
 
-    return (c->dwarf.ip == 0) ? 0 : 1;
-
-#if 0 // TODO(mundaym): port to s390x.
-  else
-    {
-      /* DWARF failed.  There isn't much of a usable frame-chain on x86-64,
-         but we do need to handle two special-cases:
-
-          (i) signal trampoline: Old kernels and older libcs don't
-              export the vDSO needed to get proper unwind info for the
-              trampoline.  Recognize that case by looking at the code
-              and filling in things by hand.
-
-          (ii) PLT (shared-library) call-stubs: PLT stubs are invoked
-              via CALLQ.  Try this for all non-signal trampoline
-              code.  */
-
-      unw_word_t prev_ip = c->dwarf.ip, prev_cfa = c->dwarf.cfa;
-      struct dwarf_loc rbp_loc, rsp_loc, rip_loc;
-
-      /* We could get here because of missing/bad unwind information.
-         Validate all addresses before dereferencing. */
-      c->validate = 1;
-
-      Debug (13, "dwarf_step() failed (ret=%d), trying frame-chain\n", ret);
-
-      if (unw_is_signal_frame (cursor) > 0)
-        {
-          ret = unw_handle_signal_frame(cursor);
-          if (ret < 0)
-            {
-              Debug (2, "returning 0\n");
-              return 0;
-            }
-        }
-      else if (is_plt_entry (&c->dwarf))
-        {
-          /* Like regular frame, CFA = RSP+8, RA = [CFA-8], no regs saved. */
-          Debug (2, "found plt entry\n");
-          c->frame_info.cfa_reg_offset = 8;
-          c->frame_info.cfa_reg_rsp = -1;
-          c->frame_info.frame_type = UNW_X86_64_FRAME_STANDARD;
-          c->dwarf.loc[RIP] = DWARF_LOC (c->dwarf.cfa, 0);
-          c->dwarf.cfa += 8;
-        }
-      else if (DWARF_IS_NULL_LOC (c->dwarf.loc[RBP]))
-        {
-          for (i = 0; i < DWARF_NUM_PRESERVED_REGS; ++i)
-            c->dwarf.loc[i] = DWARF_NULL_LOC;
-        }
-      else
-        {
-          unw_word_t rbp;
-
-          ret = dwarf_get (&c->dwarf, c->dwarf.loc[RBP], &rbp);
-          if (ret < 0)
-            {
-              Debug (2, "returning %d [RBP=0x%lx]\n", ret,
-                     DWARF_GET_LOC (c->dwarf.loc[RBP]));
-              return ret;
-            }
-
-          if (!rbp)
-            {
-              /* Looks like we may have reached the end of the call-chain.  */
-              rbp_loc = DWARF_NULL_LOC;
-              rsp_loc = DWARF_NULL_LOC;
-              rip_loc = DWARF_NULL_LOC;
-            }
-          else
-            {
-              unw_word_t rbp1 = 0;
-              rbp_loc = DWARF_LOC(rbp, 0);
-              rsp_loc = DWARF_NULL_LOC;
-              rip_loc = DWARF_LOC (rbp + 8, 0);
-              ret = dwarf_get (&c->dwarf, rbp_loc, &rbp1);
-              Debug (1, "[RBP=0x%lx] = 0x%lx (cfa = 0x%lx) -> 0x%lx\n",
-                     (unsigned long) DWARF_GET_LOC (c->dwarf.loc[RBP]),
-                     rbp, c->dwarf.cfa, rbp1);
-
-              /* Heuristic to determine incorrect guess.  For RBP to be a
-                 valid frame it needs to be above current CFA, but don't
-                 let it go more than a little.  Note that we can't deduce
-                 anything about new RBP (rbp1) since it may not be a frame
-                 pointer in the frame above.  Just check we get the value. */
-              if (ret < 0
-                  || rbp < c->dwarf.cfa
-                  || (rbp - c->dwarf.cfa) > 0x4000)
-                {
-                  rip_loc = DWARF_NULL_LOC;
-                  rbp_loc = DWARF_NULL_LOC;
-                }
-
-              c->frame_info.frame_type = UNW_X86_64_FRAME_GUESSED;
-              c->frame_info.cfa_reg_rsp = 0;
-              c->frame_info.cfa_reg_offset = 16;
-              c->frame_info.rbp_cfa_offset = -16;
-              c->dwarf.cfa += 16;
-            }
-
-          /* Mark all registers unsaved */
-          for (i = 0; i < DWARF_NUM_PRESERVED_REGS; ++i)
-            c->dwarf.loc[i] = DWARF_NULL_LOC;
-
-          c->dwarf.loc[RBP] = rbp_loc;
-          c->dwarf.loc[RSP] = rsp_loc;
-          c->dwarf.loc[RIP] = rip_loc;
-          c->dwarf.use_prev_instr = 1;
-        }
-
-      c->dwarf.ret_addr_column = RIP;
-
-      if (DWARF_IS_NULL_LOC (c->dwarf.loc[RBP]))
-        {
-          ret = 0;
-          Debug (2, "NULL %%rbp loc, returning %d\n", ret);
-          return ret;
-        }
-      if (!DWARF_IS_NULL_LOC (c->dwarf.loc[RIP]))
-        {
-          ret = dwarf_get (&c->dwarf, c->dwarf.loc[RIP], &c->dwarf.ip);
-          Debug (1, "Frame Chain [RIP=0x%Lx] = 0x%Lx\n",
-                     (unsigned long long) DWARF_GET_LOC (c->dwarf.loc[RIP]),
-                     (unsigned long long) c->dwarf.ip);
-          if (ret < 0)
-            {
-              Debug (2, "returning %d\n", ret);
-              return ret;
-            }
-          ret = 1;
-        }
-      else
-        c->dwarf.ip = 0;
-
-      if (c->dwarf.ip == prev_ip && c->dwarf.cfa == prev_cfa)
-        return -UNW_EBADFRAME;
-    }
-#endif
+  return ret;
 }

@@ -31,13 +31,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 #ifndef dwarf_config_h
 #define dwarf_config_h
 
-/* XXX need to verify if this value is correct */
-#ifdef CONFIG_MSABI_SUPPORT
-#define DWARF_NUM_PRESERVED_REGS        33
-#else
-#define DWARF_NUM_PRESERVED_REGS        17
-#endif
-
+/* derived from DWARF register mappings in Z ELF ABI */
+#define DWARF_NUM_PRESERVED_REGS        66
 #define DWARF_REGNUM_MAP_LENGTH         DWARF_NUM_PRESERVED_REGS
 
 /* Return TRUE if the ADDR_SPACE uses big-endian byte-order.  */

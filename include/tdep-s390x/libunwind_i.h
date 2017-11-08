@@ -88,11 +88,11 @@ struct cursor
       {
         S390X_SCF_NONE,                /* no signal frame encountered */
         S390X_SCF_LINUX_RT_SIGFRAME,   /* Linux ucontext_t */
-        S390X_SCF_FREEBSD_SIGFRAME,    /* FreeBSD signal frame */
-        S390X_SCF_FREEBSD_SYSCALL,     /* FreeBSD syscall */
       }
     sigcontext_format;
     unw_word_t sigcontext_addr;
+    unw_word_t sigcontext_sp;
+    unw_word_t sigcontext_pc;
     int validate;
     ucontext_t *uc;
   };

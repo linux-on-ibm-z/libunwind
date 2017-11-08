@@ -53,12 +53,15 @@ HIDDEN unw_dyn_info_list_t _U_dyn_info_list;
 static inline void *
 uc_addr (ucontext_t *uc, int reg)
 {
-  // TODO(mundaym): add float/vector registers.
+  // TODO(mundaym): add access/vector registers.
   if (reg >= UNW_S390X_R0 && reg <= UNW_S390X_R15)
-    return &uc->uc_mcontext.gregs[reg];
+    return &uc->uc_mcontext.gregs[reg - UNW_S390X_R0];
+  if (reg >= UNW_S390X_F0 && reg <= UNW_S390X_F15)
+    return &uc->uc_mcontext.gregs[reg - UNW_S390X_F0];
 
+  /* TODO(mundaym): calls to getcontext do not write out psw.addr. Add custom version. */
   if (reg == UNW_S390X_IP)
-    return &uc->uc_mcontext.psw.addr;
+    return &uc->uc_mcontext.gregs[14]; // psw.addr
 
   return NULL;
 }

@@ -52,6 +52,23 @@ HIDDEN const uint8_t dwarf_to_unw_regnum_map[DWARF_NUM_PRESERVED_REGS] =
     UNW_S390X_R13,
     UNW_S390X_R14,
     UNW_S390X_R15,
+
+    UNW_S390X_F0,
+    UNW_S390X_F2,
+    UNW_S390X_F4,
+    UNW_S390X_F6,
+    UNW_S390X_F1,
+    UNW_S390X_F3,
+    UNW_S390X_F5,
+    UNW_S390X_F7,
+    UNW_S390X_F8,
+    UNW_S390X_F10,
+    UNW_S390X_F12,
+    UNW_S390X_F14,
+    UNW_S390X_F9,
+    UNW_S390X_F11,
+    UNW_S390X_F13,
+    UNW_S390X_F15,
   };
 
 HIDDEN void
