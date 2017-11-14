@@ -57,11 +57,9 @@ uc_addr (ucontext_t *uc, int reg)
   if (reg >= UNW_S390X_R0 && reg <= UNW_S390X_R15)
     return &uc->uc_mcontext.gregs[reg - UNW_S390X_R0];
   if (reg >= UNW_S390X_F0 && reg <= UNW_S390X_F15)
-    return &uc->uc_mcontext.gregs[reg - UNW_S390X_F0];
-
-  /* TODO(mundaym): calls to getcontext do not write out psw.addr. Add custom version. */
+    return &uc->uc_mcontext.fpregs.fprs[reg - UNW_S390X_F0];
   if (reg == UNW_S390X_IP)
-    return &uc->uc_mcontext.gregs[14]; // psw.addr
+    return &uc->uc_mcontext.psw.addr;
 
   return NULL;
 }

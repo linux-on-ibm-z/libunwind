@@ -36,6 +36,10 @@ s390x_local_resume (unw_addr_space_t as, unw_cursor_t *cursor, void *arg)
 {
   struct cursor *c = (struct cursor *) cursor;
   ucontext_t uc = *c->uc;
+  ucontext_t *sc = NULL;
+  int i;
+  unw_word_t sp, ip;
+  uc.uc_mcontext.psw.addr = c->dwarf.ip; // TODO(mundaym): still needed?
 
   // TODO(mundaym): true on s390x?
   /* Ensure c->pi is up-to-date.  On x86-64, it's relatively common to
@@ -49,11 +53,26 @@ s390x_local_resume (unw_addr_space_t as, unw_cursor_t *cursor, void *arg)
     case S390X_SCF_NONE:
       Debug (8, "resuming at ip=%llx via setcontext()\n",
                 (unsigned long long) c->dwarf.ip);
-      uc.uc_mcontext.psw.addr = c->dwarf.ip;
       setcontext (&uc);
       abort(); /* unreachable */
     case S390X_SCF_LINUX_RT_SIGFRAME:
-      // TODO(mundaym): jump to signal trampoline
+      Debug (8, "resuming at ip=%llx via signal trampoline\n",
+                (unsigned long long) c->dwarf.ip);
+      sc = (ucontext_t*)c->sigcontext_addr;
+      for (i = UNW_S390X_R0; i <= UNW_S390X_R15; ++i)
+        sc->uc_mcontext.gregs[i - UNW_S390X_R0] = uc.uc_mcontext.gregs[i - UNW_S390X_R0];
+      for (i = UNW_S390X_F0; i <= UNW_S390X_F15; ++i)
+        sc->uc_mcontext.fpregs.fprs[i - UNW_S390X_F0] = uc.uc_mcontext.fpregs.fprs[i - UNW_S390X_F0];
+      /* TODO(mundaym): access regs, vxrs */
+      sc->uc_mcontext.psw.addr = uc.uc_mcontext.psw.addr;
+
+      sp = c->sigcontext_sp - 160;
+      ip = c->sigcontext_pc;
+      __asm__ __volatile__ (
+        "lgr 15, %[sp]\n"
+        "br %[ip]\n"
+        : : [sp] "r" (sp), [ip] "r" (ip)
+      );
       abort(); /* unreachable */
     }
   return -UNW_EINVAL;

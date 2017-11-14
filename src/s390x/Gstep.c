@@ -104,6 +104,9 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
   dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &c->dwarf.cfa);
   dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
 
+  /* Bias DWARF CFA. */
+  c->dwarf.cfa += 160;
+
   c->dwarf.pi_valid = 0;
   c->dwarf.use_prev_instr = 0;
 
@@ -143,6 +146,9 @@ unw_step (unw_cursor_t *cursor)
       c->dwarf.ip = 0;
       return 0;
     }
+
+  if (ret > 0 && c->dwarf.ip == 0)
+    return 0;
 
   return ret;
 }
