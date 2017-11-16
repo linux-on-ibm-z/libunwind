@@ -58,7 +58,7 @@ PROTECTED int
 unw_handle_signal_frame (unw_cursor_t *cursor)
 {
   struct cursor *c = (struct cursor *) cursor;
-  int ret, i;
+  int ret, i, handler_type;
   unw_word_t sc_addr, sp, sp_addr = c->dwarf.cfa;
   struct dwarf_loc sp_loc = DWARF_LOC (sp_addr, 0);
   ucontext_t *sc_ptr;
@@ -66,22 +66,27 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
   if ((ret = dwarf_get (&c->dwarf, sp_loc, &sp)) < 0)
     return -UNW_EUNSPEC;
 
-  ret = unw_is_signal_frame (cursor);
-  Debug(1, "unw_is_signal_frame()=%d\n", ret);
+  handler_type = unw_is_signal_frame (cursor);
+  Debug(1, "unw_is_signal_frame()=%d\n", handler_type);
 
   /* Save the SP and PC to be able to return execution at this point
      later in time (unw_resume).  */
-  c->sigcontext_sp = c->dwarf.cfa;
+  c->sigcontext_sp = c->dwarf.cfa - 160;
   c->sigcontext_pc = c->dwarf.ip;
 
-  if (ret)
+  switch (handler_type)
     {
-      c->sigcontext_format = S390X_SCF_LINUX_RT_SIGFRAME;
+    case 1: /* sigreturn */
+      sc_addr = sp_addr + 8;
+      break;
+    case 2: /* rt_sigreturn */
       sc_addr = sp_addr + sizeof(siginfo_t) + 8;
+      break;
+    default:
+      return -UNW_EUNSPEC;
     }
-  else
-    return -UNW_EUNSPEC;
 
+  c->sigcontext_format = S390X_SCF_LINUX_RT_SIGFRAME;
   c->sigcontext_addr = sc_addr;
   c->frame_info.frame_type = UNW_X86_64_FRAME_SIGRETURN;
   c->frame_info.cfa_reg_offset = sc_addr - sp_addr;

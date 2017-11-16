@@ -66,7 +66,7 @@ s390x_local_resume (unw_addr_space_t as, unw_cursor_t *cursor, void *arg)
       /* TODO(mundaym): access regs, vxrs */
       sc->uc_mcontext.psw.addr = uc.uc_mcontext.psw.addr;
 
-      sp = c->sigcontext_sp - 160;
+      sp = c->sigcontext_sp;
       ip = c->sigcontext_pc;
       __asm__ __volatile__ (
         "lgr 15, %[sp]\n"

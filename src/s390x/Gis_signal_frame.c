@@ -25,7 +25,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 #include "unwind_i.h"
 
-/* The restorer stub will always have the form: svc 173 (0x0aad) */
+/* The restorer stub will be a system call:
+   - rt_sigreturn: svc 173 (0x0aad)
+   - sigreturn:    svc 119 (0x0a77)
+*/
 /* TODO(mundaym): verify this */
 
 PROTECTED int
@@ -52,11 +55,15 @@ unw_is_signal_frame (unw_cursor_t *cursor)
     return ret;
   }
 
-  /* 2 byte instruction */
-  if (w0>>48 != 0x0aad)
-    return 0;
+  /* sigreturn */
+  if (w0>>48 == 0x0a77)
+    return 1;
 
-  return 1;
+  /* rt_sigreturn */
+  if (w0>>48 == 0x0aad)
+    return 2;
+
+  return 0;
 
 #else
   return -UNW_ENOINFO;
