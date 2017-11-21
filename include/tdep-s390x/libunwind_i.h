@@ -87,6 +87,7 @@ struct cursor
     enum
       {
         S390X_SCF_NONE,                /* no signal frame encountered */
+        S390X_SCF_LINUX_SIGFRAME,      /* Linux struct sigcontext */
         S390X_SCF_LINUX_RT_SIGFRAME,   /* Linux ucontext_t */
       }
     sigcontext_format;

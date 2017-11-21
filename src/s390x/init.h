@@ -47,6 +47,7 @@ common_init (struct cursor *c, unsigned use_prev_instr)
   if (ret < 0)
     return ret;
 
+  c->dwarf.cfa += 160;
   c->sigcontext_format = S390X_SCF_NONE;
   c->sigcontext_addr = 0;
 

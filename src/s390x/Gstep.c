@@ -59,51 +59,55 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
 {
   struct cursor *c = (struct cursor *) cursor;
   int ret, i, handler_type;
-  unw_word_t sc_addr, sp, sp_addr = c->dwarf.cfa;
-  struct dwarf_loc sp_loc = DWARF_LOC (sp_addr, 0);
+  unw_word_t sc_addr, sp, *gprs, *fprs, *psw;
   ucontext_t *sc_ptr;
-
-  if ((ret = dwarf_get (&c->dwarf, sp_loc, &sp)) < 0)
-    return -UNW_EUNSPEC;
 
   handler_type = unw_is_signal_frame (cursor);
   Debug(1, "unw_is_signal_frame()=%d\n", handler_type);
 
+  dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &sp);
+
   /* Save the SP and PC to be able to return execution at this point
      later in time (unw_resume).  */
-  c->sigcontext_sp = c->dwarf.cfa - 160;
+  c->sigcontext_sp = sp;
   c->sigcontext_pc = c->dwarf.ip;
 
   switch (handler_type)
     {
     case 1: /* sigreturn */
-      sc_addr = sp_addr + 8;
+      c->sigcontext_format = S390X_SCF_LINUX_SIGFRAME;
+      sc_addr = sp + 160;
+      gprs = ((struct sigcontext*)sc_addr)->sregs->regs.gprs;
+      fprs = (unw_word_t*)((struct sigcontext*)sc_addr)->sregs->fpregs.fprs;
+      psw  = &((struct sigcontext*)sc_addr)->sregs->regs.psw.addr;
       break;
     case 2: /* rt_sigreturn */
-      sc_addr = sp_addr + sizeof(siginfo_t) + 8;
+      c->sigcontext_format = S390X_SCF_LINUX_RT_SIGFRAME;
+      sc_addr = sp + sizeof(siginfo_t) + 8 + 160;
+      gprs = ((ucontext_t*)sc_addr)->uc_mcontext.gregs;
+      fprs = (unw_word_t*)((ucontext_t*)sc_addr)->uc_mcontext.fpregs.fprs;
+      psw  = &((ucontext_t*)sc_addr)->uc_mcontext.psw.addr;
       break;
     default:
       return -UNW_EUNSPEC;
     }
 
-  c->sigcontext_format = S390X_SCF_LINUX_RT_SIGFRAME;
   c->sigcontext_addr = sc_addr;
   c->frame_info.frame_type = UNW_X86_64_FRAME_SIGRETURN;
-  c->frame_info.cfa_reg_offset = sc_addr - sp_addr;
+  c->frame_info.cfa_reg_offset = sc_addr - sp /* + bias? */;
 
-  sc_ptr = (ucontext_t*)sc_addr;
   /* TODO(mundaym): sc_ptr->sregs might equal NULL? */
 
   /* Update the dwarf cursor.
      Set the location of the registers to the corresponding addresses of the
      uc_mcontext / sigcontext structure contents.  */
   for (i = UNW_S390X_R0; i <= UNW_S390X_R15; ++i)
-    c->dwarf.loc[i] = DWARF_LOC (&sc_ptr->uc_mcontext.gregs[i - UNW_S390X_R0], 0);
+    c->dwarf.loc[i] = DWARF_LOC (&gprs[i-UNW_S390X_R0], 0);
   for (i = UNW_S390X_F0; i <= UNW_S390X_F15; ++i)
-    c->dwarf.loc[i] = DWARF_LOC (&sc_ptr->uc_mcontext.fpregs.fprs[i - UNW_S390X_F0], 0);
+    c->dwarf.loc[i] = DWARF_LOC (&fprs[i-UNW_S390X_F0], 0);
   /* TODO(mundaym): access regs, vxrs */
 
-  c->dwarf.loc[UNW_S390X_IP] = DWARF_LOC (&sc_ptr->uc_mcontext.psw.addr, 0);
+  c->dwarf.loc[UNW_S390X_IP] = DWARF_LOC (psw, 0);
 
   /* Set SP/CFA and PC/IP.  */
   dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &c->dwarf.cfa);
