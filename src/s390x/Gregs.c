@@ -36,7 +36,6 @@ tdep_access_reg (struct cursor *c, unw_regnum_t reg, unw_word_t *valp,
   switch (reg)
     {
     case UNW_S390X_CFA:
-    case UNW_S390X_R15: // TODO(mundaym): was SP, not sure if this is true on s390x.
       if (write)
         return -UNW_EREADONLYREG;
       *valp = c->dwarf.cfa;
@@ -58,7 +57,13 @@ tdep_access_reg (struct cursor *c, unw_regnum_t reg, unw_word_t *valp,
     case UNW_S390X_R13:
     case UNW_S390X_R14:
     case UNW_S390X_IP:
-        loc = c->dwarf.loc[reg];
+      loc = c->dwarf.loc[reg];
+      break;
+
+    case UNW_S390X_R15:
+      if (write)
+        return -UNW_EREADONLYREG;
+      loc = c->dwarf.loc[reg];
       break;
 
     default:
