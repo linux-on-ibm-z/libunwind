@@ -475,7 +475,7 @@ libunwind_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)	    \
 	s390x/Lcreate_addr_space.c s390x/Lget_save_loc.c s390x/Lglobal.c    \
 	s390x/Linit.c s390x/Linit_local.c s390x/Linit_remote.c	            \
 	s390x/Lget_proc_info.c s390x/Lregs.c s390x/Lresume.c		    \
-	s390x/Lis_signal_frame.c s390x/Lstep.c s390x/Ltrace.c		    \
+	s390x/Lis_signal_frame.c s390x/Lstep.c				    \
 	s390x/getcontext.S
 
 # The list of files that go into libunwind-s390x:
@@ -485,7 +485,7 @@ libunwind_s390x_la_SOURCES_s390x = $(libunwind_la_SOURCES_s390x_common)     \
 	s390x/Gcreate_addr_space.c s390x/Gget_save_loc.c s390x/Gglobal.c    \
 	s390x/Ginit.c s390x/Ginit_local.c s390x/Ginit_remote.c	            \
 	s390x/Gget_proc_info.c s390x/Gregs.c s390x/Gresume.c		    \
-	s390x/Gis_signal_frame.c s390x/Gstep.c s390x/Gtrace.c
+	s390x/Gis_signal_frame.c s390x/Gstep.c
 
 if REMOTE_ONLY
 install-exec-hook:
