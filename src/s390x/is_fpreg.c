@@ -30,9 +30,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 PROTECTED int
 unw_is_fpreg (int regnum)
 {
-#if 0
-  // TODO(mundaym): enable? vector registers?
+  // TODO(mundaym): vector registers?
   return regnum >= UNW_S390X_F0 && regnum <= UNW_S390X_F15;
-#endif
-  return 0;
 }
