@@ -52,6 +52,7 @@ int main(){
   struct sigaction a;
   memset(&a, 0, sizeof(struct sigaction));
   a.sa_sigaction = &handler;
+  a.sa_flags = SA_SIGINFO;
   sigaction(SIGSEGV, &a, NULL);
 
   foo(NULL);
