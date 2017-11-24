@@ -160,9 +160,14 @@ dwarf_putfp (struct dwarf_cursor *c, dwarf_loc_t loc, unw_fpreg_t val)
 static inline int
 dwarf_get (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t *val)
 {
+  // TODO(mundaym): assert unw_word_t and unw_freg_t are same size.
   if (DWARF_IS_NULL_LOC (loc))
     return -UNW_EBADREG;
 
+  /* GPRs may be saved into FPRs */
+  if (DWARF_IS_FP_LOC (loc))
+      return (*c->as->acc.access_fpreg) (c->as, DWARF_GET_LOC (loc), (unw_fpreg_t*)val,
+                                         0, c->as_arg);
   if (DWARF_IS_REG_LOC (loc))
     return (*c->as->acc.access_reg) (c->as, DWARF_GET_LOC (loc), val,
                                      0, c->as_arg);

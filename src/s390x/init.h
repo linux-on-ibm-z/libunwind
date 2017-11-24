@@ -33,9 +33,14 @@ common_init (struct cursor *c, unsigned use_prev_instr)
   int ret;
   int i;
 
-  for (i = UNW_S390X_R0; i <= UNW_S390X_IP; i++) {
+  for (i = UNW_S390X_R0; i <= UNW_S390X_R15; ++i) {
     c->dwarf.loc[i] = DWARF_REG_LOC(&c->dwarf, i);
   }
+  for (i = UNW_S390X_F0; i <= UNW_S390X_F15; ++i) {
+    c->dwarf.loc[i] = DWARF_FPREG_LOC(&c->dwarf, i);
+  }
+  // TODO(mundaym): IP isn't a real register - not sure if we care
+  c->dwarf.loc[UNW_S390X_IP] = DWARF_REG_LOC(&c->dwarf, UNW_S390X_IP);
 
   ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
   if (ret < 0)

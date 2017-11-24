@@ -842,6 +842,14 @@ apply_reg_state (struct dwarf_cursor *c, struct dwarf_reg_state *rs)
           break;
 
         case DWARF_WHERE_REG:
+#ifdef __s390x__
+          /* GPRs can be saved in a FPRs on s390x */
+          if (unw_is_fpreg (dwarf_to_unw_regnum (rs->reg.val[i])))
+            {
+              c->loc[i] = DWARF_FPREG_LOC (c, dwarf_to_unw_regnum (rs->reg.val[i]));
+              break;
+            }
+#endif
           c->loc[i] = DWARF_REG_LOC (c, dwarf_to_unw_regnum (rs->reg.val[i]));
           break;
 

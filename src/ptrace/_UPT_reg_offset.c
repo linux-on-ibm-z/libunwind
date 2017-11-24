@@ -649,26 +649,25 @@ const int _UPT_reg_offset[UNW_REG_LAST + 1] =
     [UNW_S390X_R13]     = 0x78,
     [UNW_S390X_R14]     = 0x80,
     [UNW_S390X_R15]     = 0x88,
-    [UNW_S390X_IP]      = 0x08,
-#if 0
-    [UNW_S390X_F0]      = 0x80,
-    [UNW_S390X_F1]      = 0x88,
-    [UNW_S390X_F2]      = 0x90,
-    [UNW_S390X_F3]      = 0x98,
-    [UNW_S390X_F4]      = 0xa0,
-    [UNW_S390X_F5]      = 0xa8,
-    [UNW_S390X_F6]      = 0xb0,
-    [UNW_S390X_F7]      = 0xb8,
-    [UNW_S390X_F8]      = 0xc0,
-    [UNW_S390X_F9]      = 0xc8,
-    [UNW_S390X_F10]     = 0xd0,
-    [UNW_S390X_F11]     = 0xd8,
-    [UNW_S390X_F12]     = 0xe0,
-    [UNW_S390X_F13]     = 0xe8,
-    [UNW_S390X_F14]     = 0xf0,
-    [UNW_S390X_F15]     = 0xf8
-#endif
-// TODO(mundaym): PSW, float registers, access registers and vector registers?
+    [UNW_S390X_F0]      = 0xe0,
+    [UNW_S390X_F1]      = 0xe8,
+    [UNW_S390X_F2]      = 0xf0,
+    [UNW_S390X_F3]      = 0xf8,
+    [UNW_S390X_F4]      = 0x100,
+    [UNW_S390X_F5]      = 0x108,
+    [UNW_S390X_F6]      = 0x110,
+    [UNW_S390X_F7]      = 0x118,
+    [UNW_S390X_F8]      = 0x120,
+    [UNW_S390X_F9]      = 0x128,
+    [UNW_S390X_F10]     = 0x130,
+    [UNW_S390X_F11]     = 0x138,
+    [UNW_S390X_F12]     = 0x140,
+    [UNW_S390X_F13]     = 0x148,
+    [UNW_S390X_F14]     = 0x150,
+    [UNW_S390X_F15]     = 0x150,
+    [UNW_S390X_IP]      = 0x08
+// TODO(mundaym): PSW, FPC, access registers and vector registers?
+
 #else
 # error Fix me.
 #endif
