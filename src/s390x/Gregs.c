@@ -81,6 +81,35 @@ HIDDEN int
 tdep_access_fpreg (struct cursor *c, unw_regnum_t reg, unw_fpreg_t *valp,
                    int write)
 {
-      // TODO(mundaym): add floating point register accesses
+  dwarf_loc_t loc = DWARF_NULL_LOC;
+
+  switch (reg)
+    {
+    case UNW_S390X_F0:
+    case UNW_S390X_F1:
+    case UNW_S390X_F2:
+    case UNW_S390X_F3:
+    case UNW_S390X_F4:
+    case UNW_S390X_F5:
+    case UNW_S390X_F6:
+    case UNW_S390X_F7:
+    case UNW_S390X_F8:
+    case UNW_S390X_F9:
+    case UNW_S390X_F10:
+    case UNW_S390X_F11:
+    case UNW_S390X_F12:
+    case UNW_S390X_F13:
+    case UNW_S390X_F14:
+    case UNW_S390X_F15:
+      loc = c->dwarf.loc[reg];
+      break;
+    default:
+      Debug (1, "bad register number %u\n", reg);
       return -UNW_EBADREG;
+    }
+
+  if (write)
+    return dwarf_put (&c->dwarf, loc, *valp);
+  else
+    return dwarf_get (&c->dwarf, loc, valp);
 }
