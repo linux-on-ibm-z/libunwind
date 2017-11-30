@@ -96,8 +96,6 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
   c->frame_info.frame_type = UNW_X86_64_FRAME_SIGRETURN;
   c->frame_info.cfa_reg_offset = sc_addr - sp /* + bias? */;
 
-  /* TODO(mundaym): sc_ptr->sregs might equal NULL? */
-
   /* Update the dwarf cursor.
      Set the location of the registers to the corresponding addresses of the
      uc_mcontext / sigcontext structure contents.  */
@@ -109,12 +107,11 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
 
   c->dwarf.loc[UNW_S390X_IP] = DWARF_LOC (psw, 0);
 
-  /* Set SP/CFA and PC/IP.  */
+  /* Set SP/CFA and PC/IP.
+     Normally the default CFA on s390x is r15+160. We do not add that offset
+     here because dwarf_step will add the offset.  */
   dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &c->dwarf.cfa);
   dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);
-
-  /* Bias DWARF CFA. */
-  c->dwarf.cfa += 160;
 
   c->dwarf.pi_valid = 0;
   c->dwarf.use_prev_instr = 0;

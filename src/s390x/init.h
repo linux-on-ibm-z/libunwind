@@ -46,13 +46,14 @@ common_init (struct cursor *c, unsigned use_prev_instr)
   if (ret < 0)
     return ret;
 
-  /* TODO(mundaym): SP != CFA so this is wrong. */
+  /* Normally the CFA offset on s390x is biased, however this is taken
+     into account by the CFA offset in dwarf_step, so here we just mark
+     make it equal to the stack pointer.  */
   ret = dwarf_get (&c->dwarf, DWARF_REG_LOC (&c->dwarf, UNW_S390X_R15),
                    &c->dwarf.cfa);
   if (ret < 0)
     return ret;
 
-  c->dwarf.cfa += 160;
   c->sigcontext_format = S390X_SCF_NONE;
   c->sigcontext_addr = 0;
 
