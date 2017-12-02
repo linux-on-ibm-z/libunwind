@@ -29,7 +29,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
    - rt_sigreturn: svc 173 (0x0aad)
    - sigreturn:    svc 119 (0x0a77)
 */
-/* TODO(mundaym): verify this */
 
 PROTECTED int
 unw_is_signal_frame (unw_cursor_t *cursor)
@@ -40,27 +39,31 @@ unw_is_signal_frame (unw_cursor_t *cursor)
   unw_addr_space_t as;
   unw_accessors_t *a;
   void *arg;
-  int ret;
+  int ret, shift = 48;
 
   as = c->dwarf.as;
   a = unw_get_accessors (as);
   arg = c->dwarf.as_arg;
 
-  ip = c->dwarf.ip;
+  /* Align the instruction pointer to 8 bytes so that we guarantee
+     an 8 byte read from it won't cross a page boundary.
+     Instructions on s390x are 2 byte aligned.  */
+  ip = c->dwarf.ip & ~7;
+  shift -= (c->dwarf.ip - ip) * 8;
 
-  /* should be safe if the restorer is 8-byte aligned */
   ret = (*a->access_mem) (as, ip, &w0, 0, arg);
-  if (ret < 0) {
-    printf("is_signal_frame: access_mem=%d\n", ret);
+  if (ret < 0)
     return ret;
-  }
+
+  /* extract first 2 bytes of the next instruction */
+  w0 = (w0 >> shift) & 0xffff;
 
   /* sigreturn */
-  if (w0>>48 == 0x0a77)
+  if (w0 == 0x0a77)
     return 1;
 
   /* rt_sigreturn */
-  if (w0>>48 == 0x0aad)
+  if (w0 == 0x0aad)
     return 2;
 
   return 0;
