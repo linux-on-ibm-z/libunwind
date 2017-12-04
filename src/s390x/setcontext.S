@@ -26,49 +26,43 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
-// int _Us390x_getcontext (unw_tdep_context_t *ucp)
+// int _Us390x_setcontext (const ucontext_t *ucp)
 
-	.global _Us390x_getcontext
-	.type _Us390x_getcontext, @function
-_Us390x_getcontext:
+	.global _Us390x_setcontext
+	.type _Us390x_setcontext, @function
+_Us390x_setcontext:
 	.cfi_startproc
 
-	// Save the minimal set of registers required to restore the
-	// context. Generally speaking this is just the preserved
-	// registers but we've also saved the parameter registers
-	// so that return values can be modified too.
-
-	// save PSW address
-	// (not strictly needed but makes other code simpler)
-	stg   %r14,0x30(%r2)
+	// Restores the context saved by getcontext.
 
 	// floating point parameters
-	std   %f0,0x100(%r2)
-	std   %f2,0x110(%r2)
-	std   %f4,0x120(%r2)
-	std   %f6,0x130(%r2)
+	ld    %f0,0x100(%r2)
+	ld    %f2,0x110(%r2)
+	ld    %f4,0x120(%r2)
+	ld    %f6,0x130(%r2)
 	// TODO(mundaym): save vector parameters too?
 
 	// floating point preserved registers
-	stfpc 0xf8(%r2)
-	std   %f8,0x140(%r2)
-	std   %f9,0x148(%r2)
-	std   %f10,0x150(%r2)
-	std   %f11,0x158(%r2)
-	std   %f12,0x160(%r2)
-	std   %f13,0x168(%r2)
-	std   %f14,0x170(%r2)
-	std   %f15,0x178(%r2)
+	lfpc  0xf8(%r2)
+	ld    %f8,0x140(%r2)
+	ld    %f9,0x148(%r2)
+	ld    %f10,0x150(%r2)
+	ld    %f11,0x158(%r2)
+	ld    %f12,0x160(%r2)
+	ld    %f13,0x168(%r2)
+	ld    %f14,0x170(%r2)
+	ld    %f15,0x178(%r2)
 
 	// preserved registers and parameters
 	lgr   %r1,%r2
-	lghi  %r2,0
-	stmg  %r2,%r15,0x48(%r1)
+	lmg   %r2,%r15,0x48(%r1)
 
-	br    %r14
+	// restore PSW address
+	lg    %r1,0x30(%r1)
+	br    %r1
 
 	.cfi_endproc
-	.size _Us390x_getcontext, . - _Us390x_getcontext
+	.size _Us390x_setcontext, . - _Us390x_setcontext
 
 	// We do not need executable stack.
 	.section        .note.GNU-stack,"",@progbits

@@ -38,8 +38,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 #define s390x_lock                     UNW_OBJ(lock)
 #define s390x_local_resume             UNW_OBJ(local_resume)
 #define s390x_local_addr_space_init    UNW_OBJ(local_addr_space_init)
+#define setcontext                     UNW_ARCH_OBJ(setcontext)
 
 extern void s390x_local_addr_space_init (void);
 extern int s390x_local_resume (unw_addr_space_t as, unw_cursor_t *cursor, void *arg);
+extern int setcontext (const ucontext_t *ucp);
 
 #endif /* unwind_i_h */
