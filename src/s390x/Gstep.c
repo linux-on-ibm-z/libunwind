@@ -65,7 +65,9 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
   handler_type = unw_is_signal_frame (cursor);
   Debug(1, "unw_is_signal_frame()=%d\n", handler_type);
 
-  dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &sp);
+  ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_R15], &sp);
+  if (ret < 0)
+    return ret;
 
   /* Save the SP and PC to be able to return execution at this point
      later in time (unw_resume).  */
@@ -123,37 +125,43 @@ PROTECTED int
 unw_step (unw_cursor_t *cursor)
 {
   struct cursor *c = (struct cursor *) cursor;
-  unw_word_t prev_cfa = c->dwarf.cfa, prev_ip = c->dwarf.ip;
-  int ret = 0, i;
-  (void)i;
+  int ret = 0, val = c->validate;
+
+#if CONSERVATIVE_CHECKS
+  c->validate = 1;
+#endif
 
   Debug (1, "(cursor=%p, ip=0x%016lx, cfa=0x%016lx)\n",
          c, c->dwarf.ip, c->dwarf.cfa);
-
-  /* Check if this is a signal frame. */
-  if (unw_is_signal_frame (cursor) > 0)
-    return unw_handle_signal_frame (cursor);
 
   /* Try DWARF-based unwinding... */
   c->sigcontext_format = S390X_SCF_NONE;
   ret = dwarf_step (&c->dwarf);
 
-  /* TODO(mundaym): figure out what code is inserting the odd value */
-  if (ret > 0 && c->dwarf.ip&1 == 1)
+#if CONSERVATIVE_CHECKS
+  c->validate = val;
+#endif
+
+  if (unlikely (ret == -UNW_ENOINFO))
     {
-      c->dwarf.ip = 0; /* odd values indicate end of chain */
-      return 0;
+      /* Memory accesses here are quite likely to be unsafe. */
+      c->validate = 1;
+
+      /* Check if this is a signal frame. */
+      if (unw_is_signal_frame (cursor) > 0)
+        {
+          ret = unw_handle_signal_frame (cursor);
+        }
+      else
+        {
+          c->dwarf.ip = 0;
+          ret = 0;
+        }
+      c->validate = val;
+      return ret;
     }
 
-  /* We could try and use the backchain if the DWARF is missing.
-     Since it isn't enabled by default however this is very risky. */
-  if (ret == -UNW_ENOINFO)
-    {
-      c->dwarf.ip = 0;
-      return 0;
-    }
-
-  if (ret > 0 && c->dwarf.ip == 0)
+  if (unlikely (ret > 0 && c->dwarf.ip == 0))
     return 0;
 
   return ret;
