@@ -28,39 +28,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 #include "unwind_i.h"
 #include <signal.h>
 
-#if 0 // TODO(mundaym): port to s390x?
-/* Recognise PLT entries such as:
-     3bdf0: ff 25 e2 49 13 00 jmpq   *0x1349e2(%rip)
-     3bdf6: 68 ae 03 00 00    pushq  $0x3ae
-     3bdfb: e9 00 c5 ff ff    jmpq   38300 <_init+0x18> */
-static int
-is_plt_entry (struct dwarf_cursor *c)
-{
-  unw_word_t w0, w1;
-  unw_accessors_t *a;
-  int ret;
-
-  a = unw_get_accessors (c->as);
-  if ((ret = (*a->access_mem) (c->as, c->ip, &w0, 0, c->as_arg)) < 0
-      || (ret = (*a->access_mem) (c->as, c->ip + 8, &w1, 0, c->as_arg)) < 0)
-    return 0;
-
-  ret = (((w0 & 0xffff) == 0x25ff)
-         && (((w0 >> 48) & 0xff) == 0x68)
-         && (((w1 >> 24) & 0xff) == 0xe9));
-
-  Debug (14, "ip=0x%lx => 0x%016lx 0x%016lx, ret = %d\n", c->ip, w0, w1, ret);
-  return ret;
-}
-#endif
-
 PROTECTED int
 unw_handle_signal_frame (unw_cursor_t *cursor)
 {
   struct cursor *c = (struct cursor *) cursor;
   int ret, i, handler_type;
   unw_word_t sc_addr, sp, *gprs, *fprs, *psw;
-  ucontext_t *sc_ptr;
 
   handler_type = unw_is_signal_frame (cursor);
   Debug(1, "unw_is_signal_frame()=%d\n", handler_type);
@@ -102,12 +75,12 @@ unw_handle_signal_frame (unw_cursor_t *cursor)
      Set the location of the registers to the corresponding addresses of the
      uc_mcontext / sigcontext structure contents.  */
   for (i = UNW_S390X_R0; i <= UNW_S390X_R15; ++i)
-    c->dwarf.loc[i] = DWARF_LOC (&gprs[i-UNW_S390X_R0], 0);
+    c->dwarf.loc[i] = DWARF_MEM_LOC (c, (unw_word_t) &gprs[i-UNW_S390X_R0]);
   for (i = UNW_S390X_F0; i <= UNW_S390X_F15; ++i)
-    c->dwarf.loc[i] = DWARF_LOC (&fprs[i-UNW_S390X_F0], 0);
+    c->dwarf.loc[i] = DWARF_MEM_LOC (c, (unw_word_t) &fprs[i-UNW_S390X_F0]);
   /* TODO(mundaym): access regs, vxrs */
 
-  c->dwarf.loc[UNW_S390X_IP] = DWARF_LOC (psw, 0);
+  c->dwarf.loc[UNW_S390X_IP] = DWARF_MEM_LOC (c, (unw_word_t) psw);
 
   /* Set SP/CFA and PC/IP.
      Normally the default CFA on s390x is r15+160. We do not add that offset
@@ -144,6 +117,16 @@ unw_step (unw_cursor_t *cursor)
 
   if (unlikely (ret == -UNW_ENOINFO))
     {
+      /* GCC doesn't currently emit debug information for signal
+         trampolines on s390x so we check for them explicitly.
+
+         If there isn't debug information available we could also
+         try using the backchain (if available).
+
+         Other platforms also detect PLT entries here. That's
+         tricky to do reliably on s390x so I've left it out for
+         now.  */
+
       /* Memory accesses here are quite likely to be unsafe. */
       c->validate = 1;
 
@@ -157,6 +140,7 @@ unw_step (unw_cursor_t *cursor)
           c->dwarf.ip = 0;
           ret = 0;
         }
+
       c->validate = val;
       return ret;
     }
