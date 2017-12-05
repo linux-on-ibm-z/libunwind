@@ -38,29 +38,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 #include "mempool.h"
 #include "dwarf.h"
 
-typedef enum
-  {
-    UNW_X86_64_FRAME_ALIGNED = -3,       /* frame stack pointer aligned */
-    UNW_X86_64_FRAME_STANDARD = -2,     /* regular rbp, rsp +/- offset */
-    UNW_X86_64_FRAME_SIGRETURN = -1,    /* special sigreturn frame */
-    UNW_X86_64_FRAME_OTHER = 0,         /* not cacheable (special or unrecognised) */
-    UNW_X86_64_FRAME_GUESSED = 1        /* guessed it was regular, but not known */
-  }
-unw_tdep_frame_type_t;
-
-typedef struct
-  {
-    uint64_t virtual_address;
-    int64_t frame_type     : 2;  /* unw_tdep_frame_type_t classification */
-    int64_t last_frame     : 1;  /* non-zero if last frame in chain */
-    int64_t cfa_reg_sp     : 1;  /* cfa dwarf base register is sp vs. fp */
-    int64_t cfa_reg_offset : 30; /* cfa is at this offset from base register value */
-    int64_t fp_cfa_offset  : 30; /* fp saved at this offset from cfa (-1 = not saved) */
-    int64_t lr_cfa_offset  : 30; /* lr saved at this offset from cfa (-1 = not saved) */
-    int64_t sp_cfa_offset  : 30; /* sp saved at this offset from cfa (-1 = not saved) */
-  }
-unw_tdep_frame_t;
-
 struct unw_addr_space
   {
     struct unw_accessors acc;
@@ -79,8 +56,6 @@ struct unw_addr_space
 struct cursor
   {
     struct dwarf_cursor dwarf;          /* must be first */
-
-    unw_tdep_frame_t frame_info;        /* quick tracing assist info */
 
     /* Format of sigcontext structure and address at which it is
        stored: */
