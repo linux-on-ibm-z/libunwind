@@ -97,7 +97,7 @@ typedef enum
 
     UNW_TDEP_LAST_REG = UNW_S390X_IP,
 
-    /* TODO(mundaym): vector registers */
+    /* TODO(mundaym): access, vector registers */
 
     /* frame info (read-only) */
     UNW_S390X_CFA,

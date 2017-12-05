@@ -464,7 +464,7 @@ libunwind_sh_la_SOURCES_sh = $(libunwind_la_SOURCES_sh_common)		\
 	sh/Gis_signal_frame.c sh/Gregs.c sh/Gresume.c sh/Gstep.c
 
 # The list of files that go both into libunwind and libunwind-s390x:
-noinst_HEADERS += s390x/init.h s390x/unwind_i.h s390x/ucontext_i.h
+noinst_HEADERS += s390x/init.h s390x/unwind_i.h
 libunwind_la_SOURCES_s390x_common = $(libunwind_la_SOURCES_common)	\
 	s390x/is_fpreg.c s390x/regname.c
 
@@ -696,7 +696,6 @@ if ARCH_S390X
 if !REMOTE_ONLY
  libunwind_s390x_la_LIBADD += libunwind.la -lc
 endif
- libunwind_setjmp_la_SOURCES += s390x/longjmp.S s390x/siglongjmp.S
 
 endif # ARCH_S390X
 endif # ARCH_SH

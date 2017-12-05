@@ -3,6 +3,7 @@
         Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
    Modified for x86_64 by Max Asbock <masbock@us.ibm.com>
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 
@@ -39,7 +40,7 @@ common_init (struct cursor *c, unsigned use_prev_instr)
   for (i = UNW_S390X_F0; i <= UNW_S390X_F15; ++i) {
     c->dwarf.loc[i] = DWARF_FPREG_LOC(&c->dwarf, i);
   }
-  // TODO(mundaym): IP isn't a real register - not sure if we care
+  /* IP isn't a real register, it is encoded in the PSW */
   c->dwarf.loc[UNW_S390X_IP] = DWARF_REG_LOC(&c->dwarf, UNW_S390X_IP);
 
   ret = dwarf_get (&c->dwarf, c->dwarf.loc[UNW_S390X_IP], &c->dwarf.ip);

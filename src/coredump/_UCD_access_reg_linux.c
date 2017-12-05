@@ -55,7 +55,7 @@ _UCD_access_reg (unw_addr_space_t as,
   if (regnum > UNW_TILEGX_CFA)
     goto badreg;
 #elif defined(UNW_TARGET_S390X)
-  if (regnum > UNW_S390X_R15) // TODO(mundaym): more registers
+  if (regnum > UNW_S390X_R15)
     goto badreg;
 #else
 #if defined(UNW_TARGET_MIPS)

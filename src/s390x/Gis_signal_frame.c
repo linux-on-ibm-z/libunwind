@@ -1,6 +1,9 @@
 /* libunwind - a platform-independent unwind library
    Copyright (C) 2012 Tommi Rantala <tt.rantala@gmail.com>
    Copyright (C) 2013 Linaro Limited
+   Copyright (C) 2017 IBM
+
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 

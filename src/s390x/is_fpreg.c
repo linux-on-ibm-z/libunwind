@@ -3,6 +3,7 @@
         Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
    Modified for x86_64 by Max Asbock <masbock@us.ibm.com>
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 
@@ -30,6 +31,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 PROTECTED int
 unw_is_fpreg (int regnum)
 {
-  // TODO(mundaym): vector registers?
+  /* vector registers? */
   return regnum >= UNW_S390X_F0 && regnum <= UNW_S390X_F15;
 }

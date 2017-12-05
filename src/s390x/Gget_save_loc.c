@@ -3,6 +3,7 @@
         Contributed by David Mosberger-Tang <davidm@hpl.hp.com>
 
    Modified for x86_64 by Max Asbock <masbock@us.ibm.com>
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 
@@ -37,8 +38,6 @@ unw_get_save_loc (unw_cursor_t *cursor, int reg, unw_save_loc_t *sloc)
 
   switch (reg)
     {
-    // TODO(mundaym): callee-saved registers only? float?
-    // should these start at 0?
     case UNW_S390X_R6:
     case UNW_S390X_R7:
     case UNW_S390X_R8:
@@ -48,6 +47,14 @@ unw_get_save_loc (unw_cursor_t *cursor, int reg, unw_save_loc_t *sloc)
     case UNW_S390X_R12:
     case UNW_S390X_R13:
     case UNW_S390X_R15:
+    case UNW_S390X_F8:
+    case UNW_S390X_F9:
+    case UNW_S390X_F10:
+    case UNW_S390X_F11:
+    case UNW_S390X_F12:
+    case UNW_S390X_F13:
+    case UNW_S390X_F14:
+    case UNW_S390X_F15:
       loc = c->dwarf.loc[reg];
       break;
 

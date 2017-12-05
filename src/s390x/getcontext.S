@@ -3,7 +3,8 @@
 	Contributed by Paul Pluzhnikov <ppluzhnikov@google.com>
    Copyright (C) 2010 Konstantin Belousov <kib@freebsd.org>
    Copyright (C) 2017 IBM
-	Contributed by Michael Munday <mike.munday@ibm.com>
+
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 

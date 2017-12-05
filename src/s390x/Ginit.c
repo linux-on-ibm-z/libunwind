@@ -4,6 +4,7 @@
         Contributed by David Mosberger-Tang <dmosberger@gmail.com>
 
    Modified for x86_64 by Max Asbock <masbock@us.ibm.com>
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 

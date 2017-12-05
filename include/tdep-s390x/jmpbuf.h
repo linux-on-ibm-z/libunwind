@@ -27,17 +27,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 /* Use glibc's jump-buffer indices; NPTL peeks at SP: */
 
-#define JB_SP           6
-#define JB_RP           7
-#define JB_MASK_SAVED   8
-#define JB_MASK         9
-
-#elif defined __FreeBSD__
-
-#define JB_SP           2
-#define JB_RP           0
-/* Pretend the ip cannot be 0 and mask is always saved */
-#define JB_MASK_SAVED   0
-#define JB_MASK         9
+#define JB_SP           9  // __gregs[9]
+#define JB_RP           8  // __gregs[8]
+#define JB_MASK_SAVED   18 // __mask_was_saved
+#define JB_MASK         19 // __saved_mask
 
 #endif

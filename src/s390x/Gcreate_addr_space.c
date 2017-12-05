@@ -4,6 +4,7 @@
 
    Modified for x86_64 by Max Asbock <masbock@us.ibm.com>
    Copyright (C) 2012 Tommi Rantala <tt.rantala@gmail.com>
+   Modified for s390x by Michael Munday <mike.munday@ibm.com>
 
 This file is part of libunwind.
 
@@ -48,7 +49,6 @@ unw_create_addr_space (unw_accessors_t *a, int byte_order)
   if (byte_order != 0 && byte_order != __BIG_ENDIAN)
     return NULL;
 
-  // TODO(mundaym): endianess issue here?
   as = malloc (sizeof (*as));
   if (!as)
     return NULL;
