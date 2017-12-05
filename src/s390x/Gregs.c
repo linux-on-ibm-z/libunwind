@@ -109,7 +109,7 @@ tdep_access_fpreg (struct cursor *c, unw_regnum_t reg, unw_fpreg_t *valp,
     }
 
   if (write)
-    return dwarf_put (&c->dwarf, loc, *valp);
+    return dwarf_putfp (&c->dwarf, loc, *valp);
   else
-    return dwarf_get (&c->dwarf, loc, valp);
+    return dwarf_getfp (&c->dwarf, loc, valp);
 }

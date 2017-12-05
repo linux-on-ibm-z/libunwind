@@ -142,38 +142,66 @@ dwarf_get_uc(const struct dwarf_cursor *cursor)
 static inline int
 dwarf_getfp (struct dwarf_cursor *c, dwarf_loc_t loc, unw_fpreg_t *val)
 {
+  assert(sizeof unw_fpreg_t == sizeof unw_word_t);
+
   if (DWARF_IS_NULL_LOC (loc))
     return -UNW_EBADREG;
 
-  abort ();
+  if (DWARF_IS_FP_LOC (loc))
+    return (*c->as->acc.access_fpreg) (c->as, DWARF_GET_LOC (loc), val,
+                                       0, c->as_arg);
+  /* FPRs may be saved in GPRs */
+  if (DWARF_IS_REG_LOC (loc))
+    return (*c->as->acc.access_reg) (c->as, DWARF_GET_LOC (loc), (unw_word_t*)val,
+                                     0, c->as_arg);
+  if (DWARF_IS_MEM_LOC (loc))
+    return (*c->as->acc.access_mem) (c->as, DWARF_GET_LOC (loc), (unw_word_t*)val,
+                                     0, c->as_arg);
+  assert(DWARF_IS_VAL_LOC (loc));
+  *val = *(unw_fpreg_t*) DWARF_GET_LOC (loc);
+  return 0;
 }
 
 static inline int
 dwarf_putfp (struct dwarf_cursor *c, dwarf_loc_t loc, unw_fpreg_t val)
 {
+  assert(sizeof unw_fpreg_t == sizeof unw_word_t);
+  assert(!DWARF_IS_VAL_LOC (loc));
+
   if (DWARF_IS_NULL_LOC (loc))
     return -UNW_EBADREG;
 
-  abort ();
+  if (DWARF_IS_FP_LOC (loc))
+    return (*c->as->acc.access_fpreg) (c->as, DWARF_GET_LOC (loc), &val,
+                                       1, c->as_arg);
+  /* FPRs may be saved in GPRs */
+  if (DWARF_IS_REG_LOC (loc))
+    return (*c->as->acc.access_reg) (c->as, DWARF_GET_LOC (loc), (unw_word_t*) &val,
+                                     1, c->as_arg);
+
+  assert(DWARF_IS_MEM_LOC (loc));
+  return (*c->as->acc.access_mem) (c->as, DWARF_GET_LOC (loc), (unw_word_t*) &val,
+                                   1, c->as_arg);
 }
 
 static inline int
 dwarf_get (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t *val)
 {
-  // TODO(mundaym): assert unw_word_t and unw_freg_t are same size.
+  assert(sizeof unw_fpreg_t == sizeof unw_word_t);
+
   if (DWARF_IS_NULL_LOC (loc))
     return -UNW_EBADREG;
 
-  /* GPRs may be saved into FPRs */
-  if (DWARF_IS_FP_LOC (loc))
-      return (*c->as->acc.access_fpreg) (c->as, DWARF_GET_LOC (loc), (unw_fpreg_t*)val,
-                                         0, c->as_arg);
   if (DWARF_IS_REG_LOC (loc))
     return (*c->as->acc.access_reg) (c->as, DWARF_GET_LOC (loc), val,
                                      0, c->as_arg);
   if (DWARF_IS_MEM_LOC (loc))
     return (*c->as->acc.access_mem) (c->as, DWARF_GET_LOC (loc), val,
                                      0, c->as_arg);
+  /* GPRs may be saved in FPRs */
+  if (DWARF_IS_FP_LOC (loc))
+    return (*c->as->acc.access_fpreg) (c->as, DWARF_GET_LOC (loc), (unw_fpreg_t*)val,
+                                       0, c->as_arg);
   assert(DWARF_IS_VAL_LOC (loc));
   *val = DWARF_GET_LOC (loc);
   return 0;
@@ -182,6 +210,7 @@ dwarf_get (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t *val)
 static inline int
 dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
 {
+  assert(sizeof unw_fpreg_t == sizeof unw_word_t);
   assert(!DWARF_IS_VAL_LOC (loc));
 
   if (DWARF_IS_NULL_LOC (loc))
@@ -190,9 +219,14 @@ dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
   if (DWARF_IS_REG_LOC (loc))
     return (*c->as->acc.access_reg) (c->as, DWARF_GET_LOC (loc), &val,
                                      1, c->as_arg);
-  else
-    return (*c->as->acc.access_mem) (c->as, DWARF_GET_LOC (loc), &val,
-                                     1, c->as_arg);
+  /* GPRs may be saved in FPRs */
+  if (DWARF_IS_FP_LOC (loc))
+    return (*c->as->acc.access_fpreg) (c->as, DWARF_GET_LOC (loc), (unw_fpreg_t*) &val,
+                                       1, c->as_arg);
+
+  assert(DWARF_IS_MEM_LOC (loc));
+  return (*c->as->acc.access_mem) (c->as, DWARF_GET_LOC (loc), &val,
+                                   1, c->as_arg);
 }
 
 #define tdep_getcontext_trace           unw_getcontext
