@@ -7,6 +7,7 @@ env:
 - TARGET=arm-linux-gnueabihf
 - TARGET=aarch64-linux-gnu
 - TARGET=mipsel-unknown-linux-gnu
+- TARGET=s390x-linux-gnu
 # Currently experiencing build failures here
 #- TARGET=powerpc64-linux-gnu
 script:
