@@ -1,19 +1,20 @@
 sudo: required
 language: c
 compiler: gcc
+os: linux
+arch: s390x
 env:
-- TARGET=x86_64-linux-gnu
-- TARGET=x86-linux-gnu
-- TARGET=arm-linux-gnueabihf
-- TARGET=aarch64-linux-gnu
-- TARGET=mipsel-unknown-linux-gnu
-- TARGET=s390x-linux-gnu
+#- TARGET=x86_64-linux-gnu
+#- TARGET=x86-linux-gnu
+#- TARGET=arm-linux-gnueabihf
+#- TARGET=aarch64-linux-gnu
+#- TARGET=mipsel-unknown-linux-gnu
 # Currently experiencing build failures here
 #- TARGET=powerpc64-linux-gnu
 script:
 - ./autogen.sh
-- ./configure --target=$TARGET --host=$HOST
+- ./configure #--target=$TARGET --host=$HOST
 - make -j32
 - sudo bash -c 'echo core.%p.%p > /proc/sys/kernel/core_pattern'
 - ulimit -c unlimited
-- if [ $TARGET == 'x86_64-linux-gnu' ]; then make check -j32; fi
+#- if [ $TARGET == 'x86_64-linux-gnu' ]; then make check -j32; fi
