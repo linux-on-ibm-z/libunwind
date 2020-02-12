@@ -13,11 +13,12 @@ env:
 linux-s390x: &linux-s390x
   os: linux
   arch: s390x
+  env: TARGET=s390x-linux-gnu
   script:
     - ./autogen.sh
     - ./configure
     - make -j32
-    #- sudo bash -c 'echo core.%p.%p > /proc/sys/kernel/core_pattern'
+    - sudo bash -c 'echo core.%p.%p > /proc/sys/kernel/core_pattern'
     - ulimit -c unlimited
     - make check -j32
 
