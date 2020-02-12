@@ -15,6 +15,7 @@ script:
 - ./autogen.sh
 - ./configure #--target=$TARGET --host=$HOST
 - make -j32
-- sudo bash -c 'echo core.%p.%p > /proc/sys/kernel/core_pattern'
+#- sudo bash -c 'echo core.%p.%p > /proc/sys/kernel/core_pattern'
 - ulimit -c unlimited
 #- if [ $TARGET == 'x86_64-linux-gnu' ]; then make check -j32; fi
+- make check -j32
