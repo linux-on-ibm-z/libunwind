@@ -32,9 +32,9 @@ _UPT_get_proc_name (unw_addr_space_t as, unw_word_t ip,
 {
   struct UPT_info *ui = arg;
 
-#if UNW_ELF_CLASS == UNW_ELFCLASS64
+#if ELF_CLASS == ELFCLASS64
   return _Uelf64_get_proc_name (as, ui->pid, ip, buf, buf_len, offp);
-#elif UNW_ELF_CLASS == UNW_ELFCLASS32
+#elif ELF_CLASS == ELFCLASS32
   return _Uelf32_get_proc_name (as, ui->pid, ip, buf, buf_len, offp);
 #else
   return -UNW_ENOINFO;

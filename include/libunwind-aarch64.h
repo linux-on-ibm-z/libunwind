@@ -34,15 +34,6 @@ extern "C" {
 #include <inttypes.h>
 #include <stddef.h>
 #include <ucontext.h>
-#include <stdalign.h>
-
-#ifndef UNW_EMPTY_STRUCT
-#  ifdef __GNUC__
-#    define UNW_EMPTY_STRUCT
-#  else
-#    define UNW_EMPTY_STRUCT uint8_t unused;
-#  endif
-#endif
 
 #define UNW_TARGET      aarch64
 #define UNW_TARGET_AARCH64      1
@@ -69,7 +60,6 @@ typedef long double unw_tdep_fpreg_t;
 typedef struct
   {
     /* no aarch64-specific auxiliary proc-info */
-    UNW_EMPTY_STRUCT
   }
 unw_tdep_proc_info_t;
 
@@ -179,11 +169,10 @@ aarch64_regnum_t;
 typedef struct unw_tdep_save_loc
   {
     /* Additional target-dependent info on a save location.  */
-    UNW_EMPTY_STRUCT
   }
 unw_tdep_save_loc_t;
 
-#ifdef __linux__
+
 /* On AArch64, we can directly use ucontext_t as the unwind context,
  * however, the __reserved struct is quite large: tune it down to only
  * the necessary used fields.  */
@@ -195,7 +184,7 @@ struct unw_sigcontext
 	uint64_t sp;
 	uint64_t pc;
 	uint64_t pstate;
-	alignas(16) uint8_t __reserved[(66 * 8)];
+	uint8_t __reserved[(34 * 8)] __attribute__((__aligned__(16)));
 };
 
 typedef struct
@@ -215,10 +204,7 @@ typedef struct
 	uint32_t fpcr;
 	uint64_t vregs[64];
   } unw_fpsimd_context_t;
-#else
-/* On AArch64, we can directly use ucontext_t as the unwind context.  */
-typedef ucontext_t unw_tdep_context_t;
-#endif
+
 
 
 #include "libunwind-common.h"

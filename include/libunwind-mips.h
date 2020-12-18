@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 #include <inttypes.h>
-#include <ucontext.h>
+#include <sys/ucontext.h>
 
 #ifdef mips
 # undef mips

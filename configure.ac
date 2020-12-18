@@ -1,8 +1,8 @@
 define(pkg_major, 1)
 define(pkg_minor, 5)
-define(pkg_extra, -rc1)
+define(pkg_extra, 0)
 define(pkg_maintainer, libunwind-devel@nongnu.org)
-define(mkvers, $1.$2$3)
+define(mkvers, $1.$2.$3)
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT([libunwind],[mkvers(pkg_major, pkg_minor, pkg_extra)],[pkg_maintainer])
 AC_CONFIG_SRCDIR(src/mi/backtrace.c)
@@ -32,12 +32,13 @@ case "$ac_cv_search_dlopen" in
   *) DLLIB="";;
 esac
 
+CHECK_ATOMIC_OPS
+
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(asm/ptrace_offsets.h endian.h sys/endian.h sys/param.h \
-		execinfo.h ia64intrin.h sys/uc_access.h unistd.h signal.h sys/types.h \
-		sys/procfs.h sys/ptrace.h sys/syscall.h byteswap.h elf.h sys/elf.h \
-		link.h sys/link.h)
+AC_CHECK_HEADERS(asm/ptrace_offsets.h endian.h sys/endian.h execinfo.h \
+		ia64intrin.h sys/uc_access.h unistd.h signal.h sys/types.h \
+		sys/procfs.h sys/ptrace.h byteswap.h elf.h sys/elf.h link.h sys/link.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -150,13 +151,6 @@ AC_ARG_ENABLE(weak-backtrace,
  AS_HELP_STRING([--disable-weak-backtrace],[Do not provide the weak 'backtrace' symbol.]),,
  [enable_weak_backtrace=yes])
 
-AC_ARG_ENABLE(unwind-header,
- AS_HELP_STRING([--disable-unwind-header],[Do not export the 'unwind.h' header]),,
- [enable_unwind_header=yes])
-
-AC_MSG_CHECKING([if we should export unwind.h])
-AC_MSG_RESULT([$enable_unwind_header])
-
 AC_MSG_CHECKING([if we should build libunwind-setjmp])
 AC_MSG_RESULT([$enable_setjmp])
 
@@ -172,7 +166,6 @@ AC_MSG_RESULT([$target_os])
 AM_CONDITIONAL(BUILD_COREDUMP, test x$enable_coredump = xyes)
 AM_CONDITIONAL(BUILD_PTRACE, test x$enable_ptrace = xyes)
 AM_CONDITIONAL(BUILD_SETJMP, test x$enable_setjmp = xyes)
-AM_CONDITIONAL(BUILD_UNWIND_HEADER, test "x$enable_unwind_header" = xyes)
 AM_CONDITIONAL(NO_PTRACE_TEST, test x$build_arch != x$host_arch)
 AM_CONDITIONAL(REMOTE_ONLY, test x$target_arch != x$host_arch)
 AM_CONDITIONAL(ARCH_AARCH64, test x$target_arch = xaarch64)
@@ -335,8 +328,10 @@ AC_ARG_ENABLE([per-thread-cache],
 AS_HELP_STRING([--enable-per-thread-cache], [build with support for UNW_CACHE_PER_THREAD (which imposes a hight TLS memory usage) (default: disabled)]))
 AC_MSG_RESULT([$enable_per_thread_cache])
 AS_IF([test x$enable_per_thread_cache = xyes], [
-  AC_DEFINE(HAVE___CACHE_PER_THREAD, 1,
-	[Define to 1 if --enable-per-thread-cache])
+  LIBUNWIND___THREAD
+  AS_IF([test x$libc_cv_gcc___thread = xno], [
+    AC_MSG_FAILURE([UNW_CACHE_PER_THREAD requires __thread])
+  ])
 ])
 
 AC_MSG_CHECKING([for Intel compiler])
@@ -404,6 +399,20 @@ if test x$have__builtin_unreachable = xyes; then
             [Defined if __builtin_unreachable() is available])
 fi
 AC_MSG_RESULT([$have__builtin_unreachable])
+
+AC_MSG_CHECKING([for __sync atomics])
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([[]], [[
+    __sync_bool_compare_and_swap((int *)0, 0, 1);
+    __sync_fetch_and_add((int *)0, 1);
+    ]])],
+  [have_sync_atomics=yes],
+  [have_sync_atomics=no])
+if test x$have_sync_atomics = xyes; then
+  AC_DEFINE([HAVE_SYNC_ATOMICS], [1],
+            [Defined if __sync atomics are available])
+fi
+AC_MSG_RESULT([$have_sync_atomics])
 
 CCASFLAGS="${CCASFLAGS} ${CPPFLAGS}"
 

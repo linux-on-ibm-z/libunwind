@@ -34,10 +34,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-#if defined(HAVE_SYS_SYSCALL_H)
-# include <sys/syscall.h>
-#endif
-#include <stdatomic.h>
+#include <sys/syscall.h>
 
 #include "unwind_i.h"
 
@@ -140,12 +137,8 @@ write_validate (void *addr)
 
   do
     {
-#ifdef HAVE_SYS_SYSCALL_H
-       /* use syscall insteadof write() so that ASAN does not complain */
-       ret = syscall (SYS_write, mem_validate_pipe[1], addr, 1);
-#else
-	  ret = write (mem_validate_pipe[1], addr, 1);
-#endif
+      /* use syscall insteadof write() so that ASAN does not complain */
+      ret = syscall (SYS_write, mem_validate_pipe[1], addr, 1);
     }
   while ( errno == EINTR );
 
@@ -170,7 +163,7 @@ static int mincore_validate (void *addr, size_t len)
 
   /* mincore could fail with EAGAIN but we conservatively return -1
      instead of looping. */
-  if (mincore (addr, len, (unsigned char *)mvec) != 0)
+  if (mincore (addr, len, (char *)mvec) != 0)
     {
       return -1;
     }
@@ -193,7 +186,7 @@ tdep_init_mem_validate (void)
   unw_word_t addr = PAGE_START((unw_word_t)&present);
   unsigned char mvec[1];
   int ret;
-  while ((ret = mincore ((void*)addr, PAGE_SIZE, (unsigned char *)mvec)) == -1 &&
+  while ((ret = mincore ((void*)addr, PAGE_SIZE, (char *)mvec)) == -1 &&
          errno == EAGAIN) {}
   if (ret == 0)
     {
@@ -210,10 +203,10 @@ tdep_init_mem_validate (void)
 
 /* Cache of already validated addresses */
 #define NLGA 4
-#if defined(HAVE___CACHE_PER_THREAD) && HAVE___CACHE_PER_THREAD
+#if defined(HAVE___THREAD) && HAVE___THREAD
 // thread-local variant
-static _Thread_local unw_word_t last_good_addr[NLGA];
-static _Thread_local int lga_victim;
+static __thread unw_word_t last_good_addr[NLGA];
+static __thread int lga_victim;
 
 static int
 is_cached_valid_mem(unw_word_t addr)
@@ -246,10 +239,10 @@ cache_valid_mem(unw_word_t addr)
   lga_victim = victim;
 }
 
-#else
+#elif HAVE_ATOMIC_OPS_H
 // global, thread safe variant
-static _Atomic unw_word_t last_good_addr[NLGA];
-static _Atomic int lga_victim;
+static AO_T last_good_addr[NLGA];
+static AO_T lga_victim;
 
 static int
 is_cached_valid_mem(unw_word_t addr)
@@ -257,7 +250,7 @@ is_cached_valid_mem(unw_word_t addr)
   int i;
   for (i = 0; i < NLGA; i++)
     {
-      if (addr == atomic_load(&last_good_addr[i]))
+      if (addr == AO_load(&last_good_addr[i]))
         return 1;
     }
   return 0;
@@ -267,19 +260,30 @@ static void
 cache_valid_mem(unw_word_t addr)
 {
   int i, victim;
-  victim = atomic_load(&lga_victim);
-  unw_word_t zero = 0;
+  victim = AO_load(&lga_victim);
   for (i = 0; i < NLGA; i++) {
-    if (atomic_compare_exchange_strong(&last_good_addr[victim], &zero, addr)) {
+    if (AO_compare_and_swap(&last_good_addr[victim], 0, addr)) {
       return;
     }
     victim = (victim + 1) % NLGA;
   }
 
   /* All slots full. Evict the victim. */
-  atomic_store(&last_good_addr[victim], addr);
+  AO_store(&last_good_addr[victim], addr);
   victim = (victim + 1) % NLGA;
-  atomic_store(&lga_victim, victim);
+  AO_store(&lga_victim, victim);
+}
+#else
+// disabled, no cache
+static int
+is_cached_valid_mem(unw_word_t addr UNUSED)
+{
+  return 0;
+}
+
+static void
+cache_valid_mem(unw_word_t addr UNUSED)
+{
 }
 #endif
 

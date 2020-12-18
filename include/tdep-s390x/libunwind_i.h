@@ -33,7 +33,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 #include <stdlib.h>
 #include <libunwind.h>
-#include <stdatomic.h>
 
 #include "elf64.h"
 #include "mempool.h"
@@ -43,7 +42,11 @@ struct unw_addr_space
   {
     struct unw_accessors acc;
     unw_caching_policy_t caching_policy;
-    _Atomic uint32_t cache_generation;
+#ifdef HAVE_ATOMIC_OPS_H
+    AO_t cache_generation;
+#else
+    uint32_t cache_generation;
+#endif
     unw_word_t dyn_generation;          /* see dyn-common.h */
     unw_word_t dyn_info_list_addr;      /* (cached) dyn_info_list_addr */
     struct dwarf_rs_cache global_cache;
@@ -239,7 +242,7 @@ dwarf_put (struct dwarf_cursor *c, dwarf_loc_t loc, unw_word_t val)
 #define tdep_get_ip(c)                  ((c)->dwarf.ip)
 #define tdep_big_endian(as)             1
 
-extern atomic_bool tdep_init_done;
+extern int tdep_init_done;
 
 extern void tdep_init (void);
 extern void tdep_init_mem_validate (void);

@@ -601,10 +601,10 @@ get_rs_cache (unw_addr_space_t as, intrmask_t *saved_maskp)
   if (caching == UNW_CACHE_NONE)
     return NULL;
 
-#if defined(HAVE___CACHE_PER_THREAD) && HAVE___CACHE_PER_THREAD
+#if defined(HAVE___THREAD) && HAVE___THREAD
   if (likely (caching == UNW_CACHE_PER_THREAD))
     {
-      static _Thread_local struct dwarf_rs_cache tls_cache __attribute__((tls_model("initial-exec")));
+      static __thread struct dwarf_rs_cache tls_cache __attribute__((tls_model("initial-exec")));
       Debug (16, "using TLS cache\n");
       cache = &tls_cache;
     }
@@ -617,14 +617,14 @@ get_rs_cache (unw_addr_space_t as, intrmask_t *saved_maskp)
       lock_acquire (&cache->lock, *saved_maskp);
     }
 
-  if ((atomic_load (&as->cache_generation) != atomic_load (&cache->generation))
+  if ((atomic_read (&as->cache_generation) != atomic_read (&cache->generation))
        || !cache->hash)
     {
       /* cache_size is only set in the global_cache, copy it over before flushing */
       cache->log_size = as->global_cache.log_size;
       if (dwarf_flush_rs_cache (cache) < 0)
         return NULL;
-      atomic_store (&cache->generation, atomic_load (&as->cache_generation));
+      cache->generation = as->cache_generation;
     }
 
   return cache;

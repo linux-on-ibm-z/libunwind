@@ -46,7 +46,7 @@ struct table_entry
 
 #ifndef UNW_REMOTE_ONLY
 
-#ifdef __linux__
+#ifdef __linux
 #include "os-linux.h"
 #endif
 
@@ -107,18 +107,13 @@ linear_search (unw_addr_space_t as, unw_word_t ip,
 /* XXX: Could use mmap; but elf_map_image keeps tons mapped in.  */
 
 static int
-load_debug_frame (const char *file, char **buf, size_t *bufsize, int is_local,
-                  unw_word_t segbase, unw_word_t *load_offset)
+load_debug_frame (const char *file, char **buf, size_t *bufsize, int is_local)
 {
   struct elf_image ei;
-  Elf_W (Ehdr) *ehdr;
-  Elf_W (Phdr) *phdr;
   Elf_W (Shdr) *shdr;
-  int i;
   int ret;
 
   ei.image = NULL;
-  *load_offset = 0;
 
   ret = elf_w (load_debuglink) (file, &ei, is_local);
   if (ret != 0)
@@ -178,20 +173,6 @@ load_debug_frame (const char *file, char **buf, size_t *bufsize, int is_local,
 #if defined(SHF_COMPRESSED)
     }
 #endif
-
-  ehdr = ei.image;
-  phdr = (Elf_W (Phdr) *) ((char *) ei.image + ehdr->e_phoff);
-
-  for (i = 0; i < ehdr->e_phnum; ++i)
-    if (phdr[i].p_type == PT_LOAD)
-      {
-        *load_offset = segbase - phdr[i].p_vaddr;
-
-        Debug (4, "%s load offset is 0x%zx\n", file, *load_offset);
-
-        break;
-      }
-
   munmap(ei.image, ei.size);
   return 0;
 }
@@ -203,7 +184,7 @@ load_debug_frame (const char *file, char **buf, size_t *bufsize, int is_local,
 static int
 find_binary_for_address (unw_word_t ip, char *name, size_t name_size)
 {
-#if defined(__linux__) && (!UNW_REMOTE_ONLY)
+#if defined(__linux) && (!UNW_REMOTE_ONLY)
   struct map_iterator mi;
   int found = 0;
   int pid = getpid ();
@@ -212,7 +193,7 @@ find_binary_for_address (unw_word_t ip, char *name, size_t name_size)
   if (maps_init (&mi, pid) != 0)
     return 1;
 
-  while (maps_next (&mi, &segbase, &hi, &mapoff, NULL))
+  while (maps_next (&mi, &segbase, &hi, &mapoff))
     if (ip >= segbase && ip < hi)
       {
         size_t len = strlen (mi.path);
@@ -235,8 +216,8 @@ find_binary_for_address (unw_word_t ip, char *name, size_t name_size)
    pointer to debug frame descriptor, or zero if not found.  */
 
 static struct unw_debug_frame_list *
-locate_debug_info (unw_addr_space_t as, unw_word_t addr, unw_word_t segbase,
-                   const char *dlname, unw_word_t start, unw_word_t end)
+locate_debug_info (unw_addr_space_t as, unw_word_t addr, const char *dlname,
+                   unw_word_t start, unw_word_t end)
 {
   struct unw_debug_frame_list *w, *fdesc = 0;
   char path[PATH_MAX];
@@ -244,7 +225,6 @@ locate_debug_info (unw_addr_space_t as, unw_word_t addr, unw_word_t segbase,
   int err;
   char *buf;
   size_t bufsize;
-  unw_word_t load_offset;
 
   /* First, see if we loaded this frame already.  */
 
@@ -271,8 +251,7 @@ locate_debug_info (unw_addr_space_t as, unw_word_t addr, unw_word_t segbase,
   else
     name = (char*) dlname;
 
-  err = load_debug_frame (name, &buf, &bufsize, as == unw_local_addr_space,
-                          segbase, &load_offset);
+  err = load_debug_frame (name, &buf, &bufsize, as == unw_local_addr_space);
 
   if (!err)
     {
@@ -280,7 +259,6 @@ locate_debug_info (unw_addr_space_t as, unw_word_t addr, unw_word_t segbase,
 
       fdesc->start = start;
       fdesc->end = end;
-      fdesc->load_offset = load_offset;
       fdesc->debug_frame = buf;
       fdesc->debug_frame_size = bufsize;
       fdesc->index = NULL;
@@ -418,8 +396,7 @@ dwarf_find_debug_frame (int found, unw_dyn_info_t *di_debug, unw_word_t ip,
 
   Debug (15, "Trying to find .debug_frame for %s\n", obj_name);
 
-  fdesc = locate_debug_info (unw_local_addr_space, ip, segbase, obj_name, start,
-                             end);
+  fdesc = locate_debug_info (unw_local_addr_space, ip, obj_name, start, end);
 
   if (!fdesc)
     {
@@ -477,7 +454,6 @@ dwarf_find_debug_frame (int found, unw_dyn_info_t *di_debug, unw_word_t ip,
   di->format = UNW_INFO_FORMAT_TABLE;
   di->start_ip = fdesc->start;
   di->end_ip = fdesc->end;
-  di->load_offset = fdesc->load_offset;
   di->u.ti.name_ptr = (unw_word_t) (uintptr_t) obj_name;
   di->u.ti.table_data = (unw_word_t *) fdesc;
   di->u.ti.table_len = sizeof (*fdesc) / sizeof (unw_word_t);
@@ -940,14 +916,12 @@ dwarf_search_unwind_table (unw_addr_space_t as, unw_word_t ip,
     ip_base = segbase;
   }
 
-  Debug (6, "lookup IP 0x%lx\n", (long) (ip - ip_base - di->load_offset));
-
 #ifndef UNW_REMOTE_ONLY
   if (as == unw_local_addr_space)
     {
-      e = lookup (table, table_len, ip - ip_base - di->load_offset);
+      e = lookup (table, table_len, ip - ip_base);
       if (e && &e[1] < &table[table_len])
-	last_ip = e[1].start_ip_offset + ip_base + di->load_offset;
+	last_ip = e[1].start_ip_offset + ip_base;
       else
 	last_ip = di->end_ip;
     }
@@ -955,7 +929,7 @@ dwarf_search_unwind_table (unw_addr_space_t as, unw_word_t ip,
 #endif
     {
 #ifndef UNW_LOCAL_ONLY
-      int32_t last_ip_offset = di->end_ip - ip_base - di->load_offset;
+      int32_t last_ip_offset = di->end_ip - ip_base;
       segbase = di->u.rti.segbase;
       if ((ret = remote_lookup (as, (uintptr_t) table, table_len,
                                 ip - ip_base, &ent, &last_ip_offset, arg)) < 0)
@@ -963,7 +937,7 @@ dwarf_search_unwind_table (unw_addr_space_t as, unw_word_t ip,
       if (ret)
 	{
 	  e = &ent;
-	  last_ip = last_ip_offset + ip_base + di->load_offset;
+	  last_ip = last_ip_offset + ip_base;
 	}
       else
         e = NULL;       /* no info found */
@@ -977,8 +951,8 @@ dwarf_search_unwind_table (unw_addr_space_t as, unw_word_t ip,
          unwind info.  */
       return -UNW_ENOINFO;
     }
-  Debug (15, "ip=0x%lx, load_offset=0x%lx, start_ip=0x%lx\n",
-         (long) ip, (long) di->load_offset, (long) (e->start_ip_offset));
+  Debug (15, "ip=0x%lx, start_ip=0x%lx\n",
+         (long) ip, (long) (e->start_ip_offset));
   if (debug_frame_base)
     fde_addr = e->fde_offset + debug_frame_base;
   else
@@ -1001,9 +975,6 @@ dwarf_search_unwind_table (unw_addr_space_t as, unw_word_t ip,
       pi->end_ip += segbase;
       pi->flags = UNW_PI_FLAG_DEBUG_FRAME;
     }
-
-  pi->start_ip += di->load_offset;
-  pi->end_ip += di->load_offset;
 
 #if defined(NEED_LAST_IP)
   pi->last_ip = last_ip;

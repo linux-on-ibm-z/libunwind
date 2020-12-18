@@ -33,14 +33,8 @@ unw_create_addr_space (unw_accessors_t *a, int byte_order)
 #ifdef UNW_LOCAL_ONLY
   return NULL;
 #else
-  /*
-   * Tilegx supports only big or little-endian, not weird stuff like
-   * PDP_ENDIAN.
-   */
-  if (byte_order != 0 && byte_order_is_valid(byte_order) == 0)
-    return NULL;
-
   unw_addr_space_t as = malloc (sizeof (*as));
+
   if (!as)
     return NULL;
 
@@ -48,11 +42,20 @@ unw_create_addr_space (unw_accessors_t *a, int byte_order)
 
   as->acc = *a;
 
+  /*
+   * Tilegx supports only big or little-endian, not weird stuff like
+   * PDP_ENDIAN.
+   */
+  if (byte_order != 0
+      && byte_order != __LITTLE_ENDIAN
+      && byte_order != __BIG_ENDIAN)
+    return NULL;
+
   if (byte_order == 0)
     /* use host default: */
-    as->big_endian = target_is_big_endian();
+    as->big_endian = (__BYTE_ORDER == __BIG_ENDIAN);
   else
-    as->big_endian = (byte_order == UNW_BIG_ENDIAN);
+    as->big_endian = (byte_order == __BIG_ENDIAN);
 
   as->abi = UNW_TILEGX_ABI_N64;
   as->addr_size = 8;

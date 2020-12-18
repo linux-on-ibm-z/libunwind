@@ -46,10 +46,7 @@ include_HEADERS += include/libunwind-s390x.h
 endif
 
 if !REMOTE_ONLY
-include_HEADERS += include/libunwind.h
-if BUILD_UNWIND_HEADER
-include_HEADERS += include/unwind.h
-endif
+include_HEADERS += include/libunwind.h include/unwind.h
 endif
 
 nodist_include_HEADERS = include/libunwind-common.h

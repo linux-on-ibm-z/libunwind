@@ -40,7 +40,9 @@ unw_create_addr_space (unw_accessors_t *a, int byte_order)
   /*
    * We support both big- and little-endian on Linux ppc64.
    */
-  if (byte_order != 0 && byte_order_is_valid(byte_order) == 0)
+  if (byte_order != 0
+      && byte_order != __LITTLE_ENDIAN
+      && byte_order != __BIG_ENDIAN)
     return NULL;
 
   as = malloc (sizeof (*as));
@@ -53,21 +55,16 @@ unw_create_addr_space (unw_accessors_t *a, int byte_order)
 
   if (byte_order == 0)
     /* use host default: */
-    as->big_endian = target_is_big_endian();
+    as->big_endian = (__BYTE_ORDER == __BIG_ENDIAN);
   else
-    as->big_endian = byte_order_is_big_endian(byte_order);
+    as->big_endian = (byte_order == __BIG_ENDIAN);
 
-/* FreeBSD 13 and up are always ELFv2. */
-#if defined(__FreeBSD__) && __FreeBSD__ >= 13
-  as->abi = UNW_PPC64_ABI_ELFv2;
-#else
   /* FIXME!  There is no way to specify the ABI.
      Default to ELFv1 on big-endian and ELFv2 on little-endian.  */
   if (as->big_endian)
     as->abi = UNW_PPC64_ABI_ELFv1;
   else
     as->abi = UNW_PPC64_ABI_ELFv2;
-#endif
 
   return as;
 #endif
