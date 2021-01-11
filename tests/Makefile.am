@@ -216,13 +216,13 @@ Gperf_trace_LDADD = $(LIBUNWIND) $(LIBUNWIND_local)
 
 Ltest_bt_LDADD = $(LIBUNWIND_local)
 Ltest_concurrent_LDADD = $(LIBUNWIND_local) -lpthread
-#Ltest_cxx_exceptions_LDADD = $(LIBUNWIND_local)
+Ltest_cxx_exceptions_LDADD = $(LIBUNWIND_local)
 #S90X testing start
-if ARCH_S390X
-	Ltest_cxx_exceptions_LDADD =
-else
-	Ltest_cxx_exceptions_LDADD = $(LIBUNWIND_local)
-endif
+#if ARCH_S390X
+#	Ltest_cxx_exceptions_LDADD =
+#else
+#	Ltest_cxx_exceptions_LDADD = $(LIBUNWIND_local)
+#endif
 #S390Xtesting stop
 Ltest_dyn1_LDADD = $(LIBUNWIND_local)
 Ltest_exc_LDADD = $(LIBUNWIND_local)
