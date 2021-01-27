@@ -10,7 +10,7 @@ env:
 # Currently experiencing build failures here
 #- TARGET=powerpc64-linux-gnu
 
-dist: bionic
+#dist: bionic
 linux-s390x: &linux-s390x
   os: linux
   arch: s390x
